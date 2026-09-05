@@ -12,7 +12,7 @@
    progress remains intact. */
 (() => {
   if(!/^https?:$/.test(location.protocol)) return;
-  const KEY="kiku_dev_cache_bust_v35_11";
+  const KEY="kiku_dev_cache_bust_v35_12";
   try{
     if(sessionStorage.getItem(KEY)) return;
     sessionStorage.setItem(KEY,"1");
@@ -827,6 +827,19 @@ body.platform-ios .theme-cycle-ios-note{
   display:block;
 }
 
+/* v35.12: iOS Home Screen apps with viewport-fit=cover + black-translucent
+   can calculate percentage/dynamic viewport heights short after the web view
+   is shifted under the status bar. Pin the installed shell to 100vh instead,
+   which includes that offset and removes the persistent bottom "chin". */
+html.platform-ios-standalone,
+html.platform-ios-standalone body{
+  height:100vh;
+  min-height:100vh;
+}
+html.platform-ios-standalone .app{
+  height:100vh;
+}
+
 
 /* v35.6: use the browser's native interpolation for the live material surfaces.
    This keeps the authored gradients/materials in place instead of flattening them
@@ -1521,7 +1534,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.11</div>
+          <div class="small">v35.12</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1529,7 +1542,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.11</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.12</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
@@ -3338,7 +3351,10 @@ function themeCycleRate(){
   return THEME_CYCLE_RATES.includes(rate)?rate:60000;
 }
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const IS_STANDALONE=window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 document.body.classList.toggle("platform-ios",IS_IOS);
+document.body.classList.toggle("platform-standalone",IS_STANDALONE);
+document.documentElement.classList.toggle("platform-ios-standalone",IS_IOS&&IS_STANDALONE);
 
 let themeCycleTimer=null;
 let themeCycleIndex=0;
