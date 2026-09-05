@@ -12,7 +12,7 @@
    progress remains intact. */
 (() => {
   if(!/^https?:$/.test(location.protocol)) return;
-  const KEY="kiku_dev_cache_bust_v35_9";
+  const KEY="kiku_dev_cache_bust_v35_11";
   try{
     if(sessionStorage.getItem(KEY)) return;
     sessionStorage.setItem(KEY,"1");
@@ -394,7 +394,11 @@ body[data-theme="cycle"]{
   /* Spectrum Shift is driven by one inherited hue clock. Keep both the
      semantic material slots and the legacy UI color slots on that same hue
      so every part of the interface advances at exactly the same rate. */
-  --bg-paint:hsl(var(--cycle-hue) 45% 7%);
+  --bg-paint:
+    radial-gradient(circle at 50% 0%,
+      hsl(var(--cycle-hue) 48% 13%) 0%,
+      hsl(var(--cycle-hue) 45% 8%) 38%,
+      hsl(var(--cycle-hue) 42% 5%) 100%);
   --surface-paint:hsl(var(--cycle-hue) 42% 11%);
   --surface-raised-paint:hsl(var(--cycle-hue) 43% 16%);
   --surface-inset:hsl(var(--cycle-hue) 38% 9%);
@@ -851,7 +855,7 @@ body{min-height:0}
 }
 .app-view{
   position:absolute;
-  inset:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom));
+  inset:env(safe-area-inset-top) 0 72px;
   display:none;
   min-height:0;
   padding:14px;
@@ -904,11 +908,11 @@ body{min-height:0}
   left:0;
   right:0;
   bottom:0;
-  height:calc(72px + env(safe-area-inset-bottom));
+  height:72px;
   display:grid;
   grid-template-columns:repeat(3,1fr);
   align-items:stretch;
-  padding:6px 10px max(6px,env(safe-area-inset-bottom));
+  padding:6px 10px;
   background:color-mix(in srgb,var(--surface) 94%,transparent);
   border-top:1px solid var(--border-strong);
   backdrop-filter:blur(14px);
@@ -973,7 +977,7 @@ body{min-height:0}
   position:absolute;
   left:10px;
   right:10px;
-  bottom:calc(78px + env(safe-area-inset-bottom));
+  bottom:78px;
   z-index:35;
   padding:0;
 }
@@ -985,7 +989,7 @@ body{min-height:0}
   box-shadow:0 8px 24px rgba(0,0,0,.24);
 }
 .home-action-shelf #introAction:empty{display:none}
-.home-view.action-open{bottom:calc(72px + env(safe-area-inset-bottom));padding-bottom:68px}
+.home-view.action-open{bottom:72px;padding-bottom:68px}
 
 
 .jp{margin-bottom:0}
@@ -1082,7 +1086,7 @@ body{min-height:0}
 }
 
 .active-learning-drawer::after{
-  content:"";position:absolute;left:-1px;right:-1px;top:100%;height:calc(72px + env(safe-area-inset-bottom));
+  content:"";position:absolute;left:-1px;right:-1px;top:100%;height:72px;
   background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);
   pointer-events:none;
 }
@@ -1345,7 +1349,7 @@ body{
 
 
 /* v34 shell cleanup: keep the lesson background continuous behind the fixed action button. */
-.home-view.action-open{bottom:calc(72px + env(safe-area-inset-bottom));padding-bottom:68px}
+.home-view.action-open{bottom:72px;padding-bottom:68px}
 
 /* Settings should sit closer to the navigation bar without the extra bottom gutter. */
 .settings-view{padding-bottom:4px}
@@ -1517,7 +1521,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.9</div>
+          <div class="small">v35.11</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1525,7 +1529,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.9</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout and iOS theme behavior, synchronized Spectrum Shift across the full interface and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.11</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
