@@ -12,7 +12,7 @@
    progress remains intact. */
 (() => {
   if(!/^https?:$/.test(location.protocol)) return;
-  const KEY="kiku_dev_cache_bust_v35_14";
+  const KEY="kiku_dev_cache_bust_v35_16";
   try{
     if(sessionStorage.getItem(KEY)) return;
     sessionStorage.setItem(KEY,"1");
@@ -1230,7 +1230,7 @@ body{
   border-color:var(--accent);
 }
 .theme-card.active{
-  background:var(--accent-soft-paint);
+  background:var(--theme-card-active-paint,var(--accent-soft-paint));
   color:var(--text);
   border-color:var(--accent);
   box-shadow:inset 0 0 0 1px var(--accent);
@@ -1517,7 +1517,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.14</div>
+          <div class="small">v35.16</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1525,7 +1525,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.14</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored the v35.5 material transition engine for coordinated manual and Theme Cycle blending, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, kept a single Theme Cycle selection outline, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.16</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored the v35.5 material transition engine for coordinated manual and Theme Cycle blending and stabilized the selected theme-card material through transition cleanup, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, kept a single Theme Cycle selection outline, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
@@ -3388,6 +3388,10 @@ function syncThemePreviewSwatches(){
 }
 function paintTheme(theme,selectedTheme=theme){
   document.body.dataset.theme=theme;
+  if(!themeBlendRaf){
+    document.body.style.removeProperty("--theme-card-active-paint");
+    document.body.style.removeProperty("--theme-blend");
+  }
   syncSystemThemeColor();
   if(!themeSwatchesInitialized)syncThemePreviewSwatches();
   document.querySelectorAll("[data-theme-choice]").forEach(btn=>{
@@ -3514,6 +3518,10 @@ function blendTheme(theme,selectedTheme,durationMs){
   body.style.setProperty("--surface-raised-paint",crossFadePaint(from.raised,to.raised));
   body.style.setProperty("--accent-paint",crossFadePaint(from.accentPaint,to.accentPaint));
   body.style.setProperty("--accent-soft-paint",crossFadePaint(from.accentSoft,to.accentSoft));
+  /* Keep the selected theme card on one persistent cross-fade image object.
+     Chromium can render a center-out reveal if a completed -webkit-cross-fade()
+     is replaced by the equivalent authored gradient during cleanup. */
+  body.style.setProperty("--theme-card-active-paint",crossFadePaint(from.accentSoft,to.accentSoft));
   body.style.setProperty("--inset-paint",crossFadePaint(from.insetPaint,to.insetPaint));
   body.style.setProperty("--border-paint",crossFadePaint(from.borderPaint,to.borderPaint));
   body.style.setProperty("--border-strong-paint",crossFadePaint(from.borderStrongPaint,to.borderStrongPaint));
@@ -3539,7 +3547,12 @@ function blendTheme(theme,selectedTheme,durationMs){
       return;
     }
 
+    const settledCardPaint=body.style.getPropertyValue("--theme-card-active-paint");
     THEME_INLINE_VARS.forEach(name=>body.style.removeProperty(name));
+    if(settledCardPaint){
+      body.style.setProperty("--theme-card-active-paint",settledCardPaint);
+      body.style.setProperty("--theme-blend","1");
+    }
     syncSystemThemeColor();
     themeBlendRaf=null;
   }
