@@ -627,7 +627,7 @@ details{border-color:var(--border);background:var(--surface-4)}
   font-size:15px;
   font-weight:800;
   color:var(--accent);
-  background-image:var(--accent-paint);
+  background:var(--accent-paint);
   background-clip:text;
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
@@ -764,6 +764,24 @@ body.theme-cycle-blend{
   .theme-cycle-rate-options{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
+/* v35.7: iOS uses instant manual theme changes and does not run fixed Theme Cycle. */
+body.platform-ios .theme-cycle-row{
+  opacity:.48;
+}
+body.platform-ios .theme-cycle-row .switch{
+  pointer-events:none;
+}
+body.platform-ios .theme-cycle-row .slider{
+  filter:saturate(.35);
+}
+.theme-cycle-ios-note{
+  display:none;
+  margin-top:4px;
+}
+body.platform-ios .theme-cycle-ios-note{
+  display:block;
+}
+
 
 /* v35.6: use the browser's native interpolation for the live material surfaces.
    This keeps the authored gradients/materials in place instead of flattening them
@@ -784,6 +802,7 @@ body{min-height:0}
 .app{
   width:min(720px,100%);
   height:100%;
+  height:100dvh;
   margin:0 auto;
   padding:0;
   position:relative;
@@ -791,7 +810,7 @@ body{min-height:0}
 }
 .app-view{
   position:absolute;
-  inset:0 0 72px;
+  inset:env(safe-area-inset-top) 0 calc(72px + env(safe-area-inset-bottom));
   display:none;
   min-height:0;
   padding:14px;
@@ -844,7 +863,7 @@ body{min-height:0}
   left:0;
   right:0;
   bottom:0;
-  height:72px;
+  height:calc(72px + env(safe-area-inset-bottom));
   display:grid;
   grid-template-columns:repeat(3,1fr);
   align-items:stretch;
@@ -913,7 +932,7 @@ body{min-height:0}
   position:absolute;
   left:10px;
   right:10px;
-  bottom:78px;
+  bottom:calc(78px + env(safe-area-inset-bottom));
   z-index:35;
   padding:0;
 }
@@ -925,7 +944,7 @@ body{min-height:0}
   box-shadow:0 8px 24px rgba(0,0,0,.24);
 }
 .home-action-shelf #introAction:empty{display:none}
-.home-view.action-open{bottom:72px;padding-bottom:68px}
+.home-view.action-open{bottom:calc(72px + env(safe-area-inset-bottom));padding-bottom:68px}
 
 
 .jp{margin-bottom:0}
@@ -1022,7 +1041,7 @@ body{min-height:0}
 }
 
 .active-learning-drawer::after{
-  content:"";position:absolute;left:-1px;right:-1px;top:100%;height:72px;
+  content:"";position:absolute;left:-1px;right:-1px;top:100%;height:calc(72px + env(safe-area-inset-bottom));
   background:var(--surface);border-left:1px solid var(--border);border-right:1px solid var(--border);
   pointer-events:none;
 }
@@ -1285,7 +1304,7 @@ body{
 
 
 /* v34 shell cleanup: keep the lesson background continuous behind the fixed action button. */
-.home-view.action-open{bottom:72px;padding-bottom:68px}
+.home-view.action-open{bottom:calc(72px + env(safe-area-inset-bottom));padding-bottom:68px}
 
 /* Settings should sit closer to the navigation bar without the extra bottom gutter. */
 .settings-view{padding-bottom:4px}
@@ -1429,7 +1448,7 @@ body{
   <button type="button" class="theme-card" data-theme-choice="ocean"><span class="theme-name">Ocean</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#041116"></span><span class="theme-swatch" style="--s:#0d303b"></span><span class="theme-swatch" style="--s:#68d7e8"></span></span></button>
   <button type="button" class="theme-card" data-theme-choice="cycle"><span class="theme-name">Spectrum Shift</span><span class="theme-spectrum"></span></button>
   <div class="setting-row theme-cycle-row">
-    <div><b>Theme Cycle</b><div class="small">Automatically rotate through the fixed themes.</div></div>
+    <div><b>Theme Cycle</b><div class="small">Automatically rotate through the fixed themes.</div><div class="small theme-cycle-ios-note">Unavailable on iOS because iOS does not reliably support Kiku’s animated material theme changes.</div></div>
     <label class="switch" aria-label="Theme Cycle">
       <input type="checkbox" id="themeCycleToggle">
       <span class="slider"></span>
@@ -1457,7 +1476,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.6</div>
+          <div class="small">v35.7</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1465,7 +1484,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.6</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions for Safari testing, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.7</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout and iOS theme behavior, fixed Spectrum Shift branding contrast, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
@@ -3273,6 +3292,9 @@ function themeCycleRate(){
   const rate=Number(state?.settings?.themeCycleRate);
   return THEME_CYCLE_RATES.includes(rate)?rate:60000;
 }
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+document.body.classList.toggle("platform-ios",IS_IOS);
+
 let themeCycleTimer=null;
 let themeCycleIndex=0;
 let themeCycleStartedAt=0;
@@ -3332,7 +3354,11 @@ function paintTheme(theme,selectedTheme=theme){
   });
   const cycleOn=selectedTheme==="themeCycle";
   const toggle=document.getElementById("themeCycleToggle");
-  if(toggle)toggle.checked=cycleOn;
+  if(toggle){
+    toggle.checked=cycleOn&&!IS_IOS;
+    toggle.disabled=IS_IOS;
+    toggle.setAttribute("aria-disabled",IS_IOS?"true":"false");
+  }
   const panel=document.getElementById("themeCycleRatePanel");
   if(panel)panel.hidden=!cycleOn;
   document.querySelectorAll("[data-cycle-rate]").forEach(btn=>{
@@ -3474,7 +3500,14 @@ function restartThemeCycleRate(){
 
 function applyTheme(theme,blend=true){
   const allowed=[...THEME_CYCLE_ORDER,"cycle","themeCycle"];
-  const t=allowed.includes(theme)?theme:"sunset";
+  let t=allowed.includes(theme)?theme:"sunset";
+  if(IS_IOS){
+    blend=false;
+    if(t==="themeCycle"){
+      t=document.body.dataset.theme&&THEME_CYCLE_ORDER.includes(document.body.dataset.theme)?document.body.dataset.theme:"sunset";
+      state.settings.theme=t;
+    }
+  }
   if(t==="themeCycle"&&themeCycleTimer){
     if(blend)blendTheme(THEME_CYCLE_ORDER[themeCycleIndex],"themeCycle",1000);
     else paintTheme(THEME_CYCLE_ORDER[themeCycleIndex],"themeCycle");
@@ -4226,6 +4259,10 @@ document.getElementById("themeGallery").onclick=e=>{
   save();
 };
 document.getElementById("themeCycleToggle").onchange=e=>{
+  if(IS_IOS){
+    e.target.checked=false;
+    return;
+  }
   if(e.target.checked){
     state.settings.theme="themeCycle";
   }else{
