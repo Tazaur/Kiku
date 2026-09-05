@@ -12,7 +12,7 @@
    progress remains intact. */
 (() => {
   if(!/^https?:$/.test(location.protocol)) return;
-  const KEY="kiku_dev_cache_bust_v35_12";
+  const KEY="kiku_dev_cache_bust_v35_13";
   try{
     if(sessionStorage.getItem(KEY)) return;
     sessionStorage.setItem(KEY,"1");
@@ -853,6 +853,42 @@ body.theme-native-material-transition *::after{
   transition-timing-function:ease-in-out;
 }
 
+/* v35.13: do not ask Android/Chromium to interpolate whole background-image
+   paints on theme cards; differing gradient structures can render as a wipe.
+   Their border/text/solid color roles still transition normally. */
+body.theme-native-material-transition .theme-card,
+body.theme-native-material-transition .theme-card::before,
+body.theme-native-material-transition .theme-card::after{
+  transition-property:background-color,color,border-color,outline-color,box-shadow;
+}
+
+/* Manual theme changes crossfade only the page background itself. This avoids
+   duplicating/fading the UI while preventing the new background from popping
+   in before the other semantic colors finish their 1s transition. */
+body.theme-manual-background-blend::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background-color:var(--theme-old-bg-color,transparent);
+  background-image:var(--theme-old-bg-image,none);
+  background-attachment:fixed;
+  opacity:1;
+  animation:kikuManualBackgroundFade var(--theme-material-duration,1000ms) ease-in-out forwards;
+}
+body.theme-manual-background-blend .app{
+  position:relative;
+  z-index:1;
+}
+body.theme-native-material-transition.theme-manual-background-blend{
+  transition-property:background-color,color,border-color,outline-color,box-shadow;
+}
+@keyframes kikuManualBackgroundFade{
+  from{opacity:1}
+  to{opacity:0}
+}
+
 
 /* v31 app shell */
 html,body{height:100%;overflow:hidden}
@@ -1311,10 +1347,6 @@ body{
 .view-header{border-bottom-color:var(--border)}
 .small,.objective-stats,.view-eyebrow,.brand-sub,.meaning,.version{color:var(--text-muted)}
 .jp{color:var(--text-muted)}
-.theme-card.cycling-current{
-  border-color:var(--accent);
-  box-shadow:inset 0 0 0 1px var(--accent);
-}
 .theme-cycle-rate button.active{
   background:var(--accent-soft-paint);
   border-color:var(--accent);
@@ -1534,7 +1566,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.12</div>
+          <div class="small">v35.13</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1542,7 +1574,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.12</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.13</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, refined Android manual theme transitions so the page background blends without theme-card wipe artifacts, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, cleaned up Theme Cycle selection outlines, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
@@ -3527,21 +3559,37 @@ function blendTheme(theme,selectedTheme,durationMs){
     themeBlendTimer=null;
   }
 
+  const manual=selectedTheme!=="themeCycle";
+  body.classList.remove("theme-manual-background-blend");
+  body.style.removeProperty("--theme-old-bg-image");
+  body.style.removeProperty("--theme-old-bg-color");
+
+  if(manual){
+    const oldBody=getComputedStyle(body);
+    body.style.setProperty("--theme-old-bg-image",oldBody.backgroundImage||"none");
+    body.style.setProperty("--theme-old-bg-color",oldBody.backgroundColor||"transparent");
+  }
+
   body.style.setProperty("--theme-material-duration",`${durationMs}ms`);
   body.classList.add("theme-native-material-transition");
 
   /* Establish the current rendered material first, then change only the theme values.
-     Browsers that support gradient/image interpolation can now morph the actual
-     materials rather than receiving a flattened cross-fade paint. */
+     For manual changes, the old page background is held in a background-only
+     pseudo-layer while the new background is painted underneath it. */
   void body.offsetWidth;
   themeBlendRaf=requestAnimationFrame(()=>{
     paintTheme(theme,selectedTheme);
+    if(manual){
+      body.classList.add("theme-manual-background-blend");
+    }
     themeBlendRaf=null;
   });
 
   themeBlendTimer=setTimeout(()=>{
-    body.classList.remove("theme-native-material-transition");
+    body.classList.remove("theme-native-material-transition","theme-manual-background-blend");
     body.style.removeProperty("--theme-material-duration");
+    body.style.removeProperty("--theme-old-bg-image");
+    body.style.removeProperty("--theme-old-bg-color");
     syncSystemThemeColor();
     themeBlendTimer=null;
   },durationMs+80);
