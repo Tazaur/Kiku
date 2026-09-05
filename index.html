@@ -765,6 +765,19 @@ body.theme-cycle-blend{
 }
 
 
+/* v35.6: use the browser's native interpolation for the live material surfaces.
+   This keeps the authored gradients/materials in place instead of flattening them
+   through an image cross-fade during a theme change. */
+body.theme-native-material-transition,
+body.theme-native-material-transition *,
+body.theme-native-material-transition *::before,
+body.theme-native-material-transition *::after{
+  transition-property:background-color,background-image,color,border-color,outline-color,box-shadow;
+  transition-duration:var(--theme-material-duration,1000ms);
+  transition-timing-function:ease-in-out;
+}
+
+
 /* v31 app shell */
 html,body{height:100%;overflow:hidden}
 body{min-height:0}
@@ -1444,7 +1457,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.5</div>
+          <div class="small">v35.6</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1452,7 +1465,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.5</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.6</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions for Safari testing, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
@@ -3340,6 +3353,7 @@ function resetThemeCycleCountdown(){
   if(!themeCycleRaf)themeCycleRaf=requestAnimationFrame(updateThemeCycleCountdown);
 }
 let themeBlendRaf=null;
+let themeBlendTimer=null;
 const THEME_INLINE_VARS=[
   "--bg-paint","--surface-paint","--surface-raised-paint","--accent-paint","--accent-soft-paint",
   "--inset-paint","--border-paint","--border-strong-paint",
@@ -3421,47 +3435,29 @@ function blendTheme(theme,selectedTheme,durationMs){
     cancelAnimationFrame(themeBlendRaf);
     themeBlendRaf=null;
   }
-
-  const from=currentThemeVisual();
-  const to=authoredThemeVisual(theme);
-
-  body.dataset.theme=theme;
-  body.style.setProperty("--bg-paint",crossFadePaint(from.bg,to.bg));
-  body.style.setProperty("--surface-paint",crossFadePaint(from.surface,to.surface));
-  body.style.setProperty("--surface-raised-paint",crossFadePaint(from.raised,to.raised));
-  body.style.setProperty("--accent-paint",crossFadePaint(from.accentPaint,to.accentPaint));
-  body.style.setProperty("--accent-soft-paint",crossFadePaint(from.accentSoft,to.accentSoft));
-  body.style.setProperty("--inset-paint",crossFadePaint(from.insetPaint,to.insetPaint));
-  body.style.setProperty("--border-paint",crossFadePaint(from.borderPaint,to.borderPaint));
-  body.style.setProperty("--border-strong-paint",crossFadePaint(from.borderStrongPaint,to.borderStrongPaint));
-  body.style.setProperty("--theme-blend","0");
-
-  const start=performance.now();
-  const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
-
-  function frame(now){
-    const raw=Math.min(1,(now-start)/durationMs);
-    const t=ease(raw);
-    body.style.setProperty("--theme-blend",String(t));
-    body.style.setProperty("--accent",mixedColor(from.accent,to.accent,t));
-    body.style.setProperty("--on-accent",mixedColor(from.onAccent,to.onAccent,t));
-    body.style.setProperty("--text",mixedColor(from.text,to.text,t));
-    body.style.setProperty("--text-muted",mixedColor(from.textMuted,to.textMuted,t));
-    body.style.setProperty("--surface-inset",mixedColor(from.surfaceInset,to.surfaceInset,t));
-    body.style.setProperty("--border",mixedColor(from.border,to.border,t));
-    body.style.setProperty("--border-strong",mixedColor(from.borderStrong,to.borderStrong,t));
-
-    if(raw<1){
-      themeBlendRaf=requestAnimationFrame(frame);
-      return;
-    }
-
-    THEME_INLINE_VARS.forEach(name=>body.style.removeProperty(name));
-    syncSystemThemeColor();
-    themeBlendRaf=null;
+  if(themeBlendTimer){
+    clearTimeout(themeBlendTimer);
+    themeBlendTimer=null;
   }
-  themeBlendRaf=requestAnimationFrame(frame);
-  paintTheme(theme,selectedTheme);
+
+  body.style.setProperty("--theme-material-duration",`${durationMs}ms`);
+  body.classList.add("theme-native-material-transition");
+
+  /* Establish the current rendered material first, then change only the theme values.
+     Browsers that support gradient/image interpolation can now morph the actual
+     materials rather than receiving a flattened cross-fade paint. */
+  void body.offsetWidth;
+  themeBlendRaf=requestAnimationFrame(()=>{
+    paintTheme(theme,selectedTheme);
+    themeBlendRaf=null;
+  });
+
+  themeBlendTimer=setTimeout(()=>{
+    body.classList.remove("theme-native-material-transition");
+    body.style.removeProperty("--theme-material-duration");
+    syncSystemThemeColor();
+    themeBlendTimer=null;
+  },durationMs+80);
 }
 function advanceThemeCycle(){
   themeCycleIndex=(themeCycleIndex+1)%THEME_CYCLE_ORDER.length;
