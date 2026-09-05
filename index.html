@@ -1,6 +1,27 @@
 <!doctype html>
 <html lang="en">
 <head>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<script>
+/* v35.9 temporary development cache bust:
+   On the first HTTP(S) load of each browser/web-app session, replace the URL
+   with a unique query string so the hosted index.html is re-requested.
+   Query strings do not change the origin, so Kiku localStorage/IndexedDB
+   progress remains intact. */
+(() => {
+  if(!/^https?:$/.test(location.protocol)) return;
+  const KEY="kiku_dev_cache_bust_v35_9";
+  try{
+    if(sessionStorage.getItem(KEY)) return;
+    sessionStorage.setItem(KEY,"1");
+    const url=new URL(location.href);
+    url.searchParams.set("_kiku_dev",Date.now().toString());
+    location.replace(url.toString());
+  }catch(e){}
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" id="themeColorMeta" content="#150a12">
@@ -369,6 +390,10 @@ body[data-theme="sunset"]{
 }
 body[data-theme="cycle"]{
   animation:v23HueSweep 180s linear infinite;
+
+  /* Spectrum Shift is driven by one inherited hue clock. Keep both the
+     semantic material slots and the legacy UI color slots on that same hue
+     so every part of the interface advances at exactly the same rate. */
   --bg-paint:hsl(var(--cycle-hue) 45% 7%);
   --surface-paint:hsl(var(--cycle-hue) 42% 11%);
   --surface-raised-paint:hsl(var(--cycle-hue) 43% 16%);
@@ -381,6 +406,22 @@ body[data-theme="cycle"]{
   --text-muted:hsl(var(--cycle-hue) 20% 72%);
   --border:hsl(var(--cycle-hue) 34% 28%);
   --border-strong:hsl(var(--cycle-hue) 38% 48%);
+
+  --bg:hsl(var(--cycle-hue) 45% 7%);
+  --surface:hsl(var(--cycle-hue) 42% 11%);
+  --surface-2:hsl(var(--cycle-hue) 43% 14%);
+  --surface-3:hsl(var(--cycle-hue) 40% 9%);
+  --surface-4:hsl(var(--cycle-hue) 41% 12%);
+  --surface-5:hsl(var(--cycle-hue) 42% 14%);
+  --muted:hsl(var(--cycle-hue) 20% 72%);
+  --accent-2:hsl(var(--cycle-hue) 72% 52%);
+  --accent-text:hsl(var(--cycle-hue) 45% 7%);
+  --chip:hsl(var(--cycle-hue) 40% 10%);
+  --chip-border:hsl(var(--cycle-hue) 34% 30%);
+  --note:hsl(var(--cycle-hue) 44% 13%);
+  --note-border:hsl(var(--cycle-hue) 42% 34%);
+  --input:hsl(var(--cycle-hue) 41% 12%);
+  --hover:hsl(var(--cycle-hue) 48% 48%);
 }
 @keyframes v23HueSweep{from{--cycle-hue:0}to{--cycle-hue:360}}
 
@@ -1476,7 +1517,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.7</div>
+          <div class="small">v35.9</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1484,7 +1525,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.7</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout and iOS theme behavior, fixed Spectrum Shift branding contrast, and updated the home-screen/app icon.</span></div>
+        <div class="change-entry"><b>v35.9</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored native material theme transitions where supported, corrected iOS safe-area layout and iOS theme behavior, synchronized Spectrum Shift across the full interface and fixed its branding contrast, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
