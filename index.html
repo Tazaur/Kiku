@@ -1,27 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<script>
-/* v35.9 temporary development cache bust:
-   On the first HTTP(S) load of each browser/web-app session, replace the URL
-   with a unique query string so the hosted index.html is re-requested.
-   Query strings do not change the origin, so Kiku localStorage/IndexedDB
-   progress remains intact. */
-(() => {
-  if(!/^https?:$/.test(location.protocol)) return;
-  const KEY="kiku_dev_cache_bust_v35_16";
-  try{
-    if(sessionStorage.getItem(KEY)) return;
-    sessionStorage.setItem(KEY,"1");
-    const url=new URL(location.href);
-    url.searchParams.set("_kiku_dev",Date.now().toString());
-    location.replace(url.toString());
-  }catch(e){}
-})();
-</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" id="themeColorMeta" content="#150a12">
@@ -809,7 +788,7 @@ body.theme-cycle-blend{
   .theme-cycle-rate-options{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 
-/* v35.7: iOS uses instant manual theme changes and does not run fixed Theme Cycle. */
+/* v34.7: iOS uses instant manual theme changes and does not run fixed Theme Cycle. */
 body.platform-ios .theme-cycle-row{
   opacity:.48;
 }
@@ -827,7 +806,7 @@ body.platform-ios .theme-cycle-ios-note{
   display:block;
 }
 
-/* v35.12: iOS Home Screen apps with viewport-fit=cover + black-translucent
+/* v34.12: iOS Home Screen apps with viewport-fit=cover + black-translucent
    can calculate percentage/dynamic viewport heights short after the web view
    is shifted under the status bar. Pin the installed shell to 100vh instead,
    which includes that offset and removes the persistent bottom "chin". */
@@ -1459,7 +1438,7 @@ body{
     <div class="view-scroll settings-scroll">
 <div class="setting-row no-row-background"><div><b>Auto audio</b><div class="small">Speak Japanese when the prompt itself is Japanese.</div></div><label class="switch"><input id="autoAudio" type="checkbox"><span class="slider"></span></label></div>
       <div class="setting-row no-row-background"><div><b>Quick answer</b><div class="small">Advance automatically after feedback/audio.</div></div><label class="switch"><input id="quickMode" type="checkbox"><span class="slider"></span></label></div>
-      <details class="settings-subsection" open>
+      <details class="settings-subsection">
         <summary>Question Types</summary>
         <div class="question-type-note small">Choose how Kiku tests eligible learning content. At least one type stays enabled.</div>
         <div class="question-types-grid" id="questionTypeFilters">
@@ -1517,7 +1496,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v35.16</div>
+          <div class="small">v35</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1525,8 +1504,8 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v35.16</b><span class="small">Improved te-form teaching, protected Sentence Practice answers from audio hints including blanked words, preserved unfinished questions when switching between Word and Sentence Practice, added the prayer expression ai fukaki and its Heavenly Father opening, restored the v35.5 material transition engine for coordinated manual and Theme Cycle blending and stabilized the selected theme-card material through transition cleanup, corrected iOS safe-area and standalone viewport sizing without lifting the bottom navigation, disabled unsupported iOS theme animation behavior, synchronized Spectrum Shift across the full interface including its animated page background and fixed its branding contrast, kept a single Theme Cycle selection outline, added temporary development cache busting for hosted builds, and updated the home-screen/app icon.</span></div>
-        <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, and theme-cycle refinements.</span></div>
+        <div class="change-entry"><b>v35</b><span class="small">Improved teaching and practice flow, added prayer language, finalized theme transitions and Spectrum Shift, updated the app icon, and fixed several small internal bugs.</span></div>
+        <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, theme-cycle refinements, and improved iOS installed-app behavior.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
         <div class="change-entry"><b>v32</b><span class="small">Added question-type filters and the Active Learning drawer with proficiency and status summaries.</span></div>
         <div class="change-entry"><b>v31</b><span class="small">Rebuilt Kiku around fixed Lesson, Objectives, and Settings views with compact stats and anchored lesson actions.</span></div>
@@ -2248,6 +2227,7 @@ const SENTENCES=[
 const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
+const APP_VERSION="35";
 const STORE_KEY="kiku_christian_japanese";
 const LEGACY_STORE_KEY="church_japanese_listener_v16";
 const DB_NAME="KikuChristianJapaneseDB";
@@ -2294,7 +2274,7 @@ const defaultState={
   lastVerbIds:[],
   lastWordKeys:[],
   lastQuestionSigs:[],
-  settings:{autoAudio:true,quickMode:true,listeningMode:true,theme:"sunset",themeCycleRate:60000,questionTypes:{jpToEn:true,enToJp:true,listening:true,identifyForm:true,buildForm:true,fillBlank:true}}
+  settings:{autoAudio:true,quickMode:true,listeningMode:true,theme:"sunset",themeCycleRate:30000,questionTypes:{jpToEn:true,enToJp:true,listening:true,identifyForm:true,buildForm:true,fillBlank:true}}
 };
 
 let state=structuredClone(defaultState);
@@ -2330,7 +2310,7 @@ function normalizeState(raw){
     sentenceStats:raw.sentenceStats||{},
     sentenceQuestionCount:raw.sentenceQuestionCount||0,
     curriculum:(raw.curriculum==="sentences"?"sentences":"words"),
-    studyFilters:{...defaultState.studyFilters,...(raw.studyFilters||{}),verbs:true,nouns:true,adjectives:true,expressions:true,baseFormOnly:false},
+    studyFilters:{...defaultState.studyFilters,...(raw.studyFilters||{}),verbs:true,nouns:true,adjectives:true,expressions:true,patterns:true,baseFormOnly:false},
     studyDomains:{...defaultState.studyDomains,...(raw.studyDomains||{})},
     lastWordKeys:raw.lastWordKeys||[]
   };
@@ -2418,7 +2398,7 @@ async function hydrateState(){
   // Once an older install is loaded, the next save writes it under the official Kiku names.
 }
 function exportBackup(){
-  const payload={app:APP_NAME,version:"34",exportedAt:new Date().toISOString(),state};
+  const payload={app:APP_NAME,version:APP_VERSION,exportedAt:new Date().toISOString(),state};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
@@ -2465,13 +2445,6 @@ function objectiveUnlocked(o){
   if(o.category==="prayer")return state.prayerIntroducedIds.includes(o.id);
   return state.unlockedObjectiveIds.includes(o.id);
 }
-function objectiveStatFor(o){
-  if(o.category==="verb")return tagStat(lexicalTag(o));
-  if(o.category==="form")return tagStat(formTag(o));
-  if(o.category==="prayer")return tagStat(prayerTag(o));
-  return tagStat(objectiveTag(o));
-}
-
 function categoryEnabled(cat){
   const f=state.studyFilters;
   return cat==="verb"?f.verbs:cat==="form"?f.forms:cat==="noun"?f.nouns:cat==="adjective"?f.adjectives:cat==="expression"?f.expressions:cat==="pattern"?f.patterns:cat==="particle"?f.particles:cat==="pronoun"?f.pronouns:true;
@@ -2946,9 +2919,6 @@ function speakSurface(v,f){
 function tone(ok){
   try{const C=window.AudioContext||window.webkitAudioContext;const c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=ok?660:180;g.gain.value=.04;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.09)}catch(e){}
 }
-function tone(ok){
-  try{const C=window.AudioContext||window.webkitAudioContext;const c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=ok?660:180;g.gain.value=.04;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.09)}catch(e){}
-}
 function flash(ok){
   const el=document.getElementById("flash");el.className="flash show "+(ok?"good":"bad");
   el.textContent=ok?`✓ 🔥 ${state.streak}`:"✕";
@@ -2972,8 +2942,6 @@ function componentHTML(v,f){
     ? `<b>${esc(v.romaji)}</b>`
     : `${esc(v.romaji)} + ${esc(f.tag)} → <b>${esc(surf.romaji)}</b>`;
 }
-function componentLegendHTML(){return ""}
-
 function introMeaning(v){
   if(v.kind==="suru"){
     return `${v.romaji} = ${v.lex}. It is a noun/concept that combines with suru to make the action “${v.action}.”`;
@@ -3768,8 +3736,8 @@ function renderQuestion(){
     document.getElementById("jp").textContent=current.v.jp;
     document.getElementById("meaning").textContent=current.v.kind==="suru"?current.v.lex:current.v.action;
     const explain=current.v.kind==="suru"
-      ? `<div class="suru-note"><div class="suru-flow">${componentHTML(current.v,current.f)}</div><div class="small">${esc(introMeaning(current.v))}</div>${componentLegendHTML()}</div>`
-      : `<div class="lesson"><b>New verb</b><div class="suru-flow">${componentHTML(current.v,current.f)}</div><div class="small">${esc(introMeaning(current.v))}</div>${componentLegendHTML()}</div>`;
+      ? `<div class="suru-note"><div class="suru-flow">${componentHTML(current.v,current.f)}</div><div class="small">${esc(introMeaning(current.v))}</div></div>`
+      : `<div class="lesson"><b>New verb</b><div class="suru-flow">${componentHTML(current.v,current.f)}</div><div class="small">${esc(introMeaning(current.v))}</div></div>`;
     document.getElementById(current.v.kind==="suru"?"suruNote":"lesson").innerHTML=explain;
     const b=document.createElement("button");
     b.className="next";b.textContent="Got it — start testing";
@@ -3853,7 +3821,6 @@ function renderContextLesson(preAnswer=false){
     document.getElementById("suruNote").innerHTML=`<div class="suru-note">
       <div class="suru-flow">${componentHTML(current.v,f)}</div>
       <div class="small"><b>suru</b> is the reusable verb engine. The noun stays ${esc(current.v.romaji)}; the suru engine changes shape for the requested form${f.id==="plain"?".":`, here becoming <b>${esc(e[0])}</b>.`}</div>
-      ${componentLegendHTML()}
     </div>`;
   }
 }
@@ -3907,7 +3874,7 @@ function explainCurrent(){
   body+=explanationSection("Listening / real usage",vd.usage);
   body+=explanationSection("Connections to remember",verbConnection(current.v));
   body+=explanationSection("Contrast / common trap",vd.contrast);
-  body+=`<div class="suru-note"><div class="suru-flow">${componentHTML(current.v,current.f)}</div>${componentLegendHTML()}</div>`;
+  body+=`<div class="suru-note"><div class="suru-flow">${componentHTML(current.v,current.f)}</div></div>`;
   body+=`<div class="explain-section"><div class="explain-title">Current grammatical form</div><p><b>${esc(f.label)}${f.tag?` (${esc(f.tag)})`:""}</b></p><p class="small">${esc(f.explanation)}</p></div>`;
   body+=`<p><b>Tags being trained:</b></p><div class="tag-grid">${tagsFor(current.v,current.f).map(tagChip).join("")}</div>`;
   if(current.v.kind==="suru"){
@@ -4072,7 +4039,7 @@ function renderUI(){
   document.getElementById("prayerTab").classList.toggle("active",state.curriculum==="sentences");
   renderAllItems();
   renderActiveLearning();
-  const filterState={filterForms:state.studyFilters.forms,filterParticles:state.studyFilters.particles,filterPronouns:state.studyFilters.pronouns,filterPatterns:state.studyFilters.patterns};
+  const filterState={filterForms:state.studyFilters.forms,filterParticles:state.studyFilters.particles,filterPronouns:state.studyFilters.pronouns};
   for(const [id,val] of Object.entries(filterState)){const el=document.getElementById(id);if(el)el.checked=!!val}
   document.querySelectorAll("[data-domain-key]").forEach(el=>el.checked=state.studyDomains?.[el.dataset.domainKey]!==false);
   document.querySelectorAll("[data-question-type]").forEach(el=>el.checked=questionTypeEnabled(el.dataset.questionType));
