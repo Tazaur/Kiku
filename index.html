@@ -109,14 +109,22 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 .explain-section p{margin:5px 0}
 
 
-/* v23 full-UI theme system */
+/* v23 full-UI theme system (mostly retired by the v35 semantic system below).
+   v37: this block used to also hardcode --surface/--surface-2..5/--muted/--accent-2/
+   --accent-text/--chip/--note/--lesson/--input/--hover/--gold(family)/--shadow directly
+   on body, which — because it targets `body` itself rather than `:root` — silently beat
+   the ":root{ --surface:var(--surface-inset); ... }" compatibility aliases below for
+   every theme, on every element inside body (the explain modal's ".sheet" background,
+   button hover states via --accent-2/--surface-2, tag/lesson/note colors, etc.), no
+   matter which theme was selected. Those are removed here so the aliases actually apply.
+   What's left is a pre-JS-paint fallback (border/border-strong/text/accent, so there's
+   no flash of unstyled color before applyTheme() runs) plus the intentionally
+   theme-invariant colors (success/error feedback, modal backdrop dim). */
 @property --cycle-hue{syntax:"<number>";inherits:true;initial-value:210}
 body{
-  --surface:#0d1828;--surface-2:#111f32;--surface-3:#091524;--surface-4:#0a1524;--surface-5:#0b1727;
-  --border:#24364d;--border-strong:#2a415c;--text:#eef5ff;--muted:#94a7bd;--accent:#71c4ff;--accent-2:#4fa9e6;--accent-text:#06111d;
-  --chip:#0a1625;--chip-border:#29415e;--note:#0a2230;--note-border:#22556e;--lesson:#2b2110;--lesson-border:#624d1e;--lesson-text:#ffe29a;
-  --input:#0a1524;--hover:#4c7096;--good:#63dda0;--good-bg:#10291f;--good-border:#3c9f73;--bad:#ff7f8f;--bad-bg:#2a1217;--bad-border:#a94d5b;
-  --gold:#f1c75b;--gold-bg:#30240a;--gold-border:#a67f25;--overlay:rgba(1,6,12,.76);--shadow:0 18px 50px rgba(0,0,0,.32);
+  --border:#24364d;--border-strong:#2a415c;--text:#eef5ff;--accent:#71c4ff;
+  --good:#63dda0;--good-bg:#10291f;--good-border:#3c9f73;--bad:#ff7f8f;--bad-bg:#2a1217;--bad-border:#a94d5b;
+  --overlay:rgba(1,6,12,.76);
 }
 
 
@@ -127,9 +135,14 @@ body{
    --on-accent, --text, --text-muted, --border, --border-strong.
    Paint slots may be solid colors OR gradients. Components never need to know which. */
 
-:root{
-  /* Compatibility aliases for legacy component rules. These are global role mappings,
-     not theme-specific values. */
+body{
+  /* Compatibility aliases for legacy component rules, re-pointed at the v35 paint slots.
+     v37: this has to live on `body` (where --surface-inset etc. are actually set by the
+     per-theme body[data-theme="X"] blocks below), not on :root — a custom property
+     inherits its already-computed value, it does not lazily re-resolve var() per
+     descendant. Declared at :root, --surface-inset doesn't exist there, so every alias
+     computed to empty at the root and every element just inherited that empty value,
+     no matter what the theme set --surface-inset to further down. */
   --bg:var(--surface-inset);
   --surface:var(--surface-inset);
   --surface-2:var(--surface-inset);
@@ -693,44 +706,20 @@ details{border-color:var(--border);background:var(--surface-4)}
 }
 
 
-/* v30 theme cycling */
-@property --bg{syntax:"<color>";inherits:true;initial-value:#07101c}
-@property --surface{syntax:"<color>";inherits:true;initial-value:#0d1828}
-@property --surface-2{syntax:"<color>";inherits:true;initial-value:#111f32}
-@property --surface-3{syntax:"<color>";inherits:true;initial-value:#091524}
-@property --surface-4{syntax:"<color>";inherits:true;initial-value:#0a1524}
-@property --surface-5{syntax:"<color>";inherits:true;initial-value:#0b1727}
-@property --muted{syntax:"<color>";inherits:true;initial-value:#94a7bd}
-@property --accent-2{syntax:"<color>";inherits:true;initial-value:#4fa9e6}
-@property --accent-text{syntax:"<color>";inherits:true;initial-value:#06111d}
-@property --chip{syntax:"<color>";inherits:true;initial-value:#0a1625}
-@property --chip-border{syntax:"<color>";inherits:true;initial-value:#29415e}
-@property --note{syntax:"<color>";inherits:true;initial-value:#0a2230}
-@property --note-border{syntax:"<color>";inherits:true;initial-value:#22556e}
-@property --input{syntax:"<color>";inherits:true;initial-value:#0a1524}
-@property --hover{syntax:"<color>";inherits:true;initial-value:#4c7096}
-body.theme-cycle-blend{
-  transition:
-  --bg 2s linear,
-  --surface 2s linear,
-  --surface-2 2s linear,
-  --surface-3 2s linear,
-  --surface-4 2s linear,
-  --surface-5 2s linear,
-  --border 2s linear,
-  --border-strong 2s linear,
-  --text 2s linear,
-  --muted 2s linear,
-  --accent 2s linear,
-  --accent-2 2s linear,
-  --accent-text 2s linear,
-  --chip 2s linear,
-  --chip-border 2s linear,
-  --note 2s linear,
-  --note-border 2s linear,
-  --input 2s linear,
-  --hover 2s linear;
-}
+/* v37: removed here — v30's original CSS-native theme-cycle transition approach.
+   It registered --bg/--surface(family)/--muted/--accent-2/--accent-text/--chip(family)/
+   --note(family)/--input/--hover via @property with syntax:"<color>" so `body.theme-cycle-blend`
+   could `transition` them natively. That class is never added by any JS anymore (theme
+   cycling moved to the JS-driven blendTheme()/crossFadePaint() rAF system below), so this
+   was fully dead — but @property's strict typing was NOT dead: because these same names are
+   meant to be pure aliases to var(--surface-inset) etc. (see the compatibility-alias :root
+   block above), and --surface-inset isn't defined at :root itself, the alias was invalid
+   at :root, and a registered <color> property falls back to its initial-value when invalid
+   with no valid ancestor to inherit — permanently pinning --surface (and the rest) to this
+   block's hardcoded old palette on every element, in every theme, regardless of the alias.
+   Removing the @property registrations restores normal untyped var() substitution, which
+   resolves per-element as intended. This is what was actually breaking the explain modal's
+   background and these buttons' hover colors. */
 .theme-card.cycling-current{
   position:relative;
   outline:2px solid var(--accent);
@@ -787,6 +776,31 @@ body.theme-cycle-blend{
 @media(max-width:360px){
   .theme-cycle-rate-options{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
+/* v37: learning pace picker, same visual language as the theme-cycle rate picker */
+.speed-options{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:6px;
+  margin-top:8px;
+}
+.speed-options button{
+  min-width:0;
+  padding:8px 4px;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--surface-raised-paint);
+  color:var(--text-muted);
+  font:inherit;
+  font-size:12px;
+  cursor:pointer;
+}
+.speed-options button.active{
+  border-color:var(--accent);
+  color:var(--text);
+  background:var(--accent-soft-paint);
+}
+.speed-row{align-items:flex-start}
+.speed-row-body{flex:1;min-width:0}
 
 /* v34.7: iOS uses instant manual theme changes and does not run fixed Theme Cycle. */
 body.platform-ios .theme-cycle-row{
@@ -1472,6 +1486,17 @@ body{
     <div class="view-scroll settings-scroll">
 <div class="setting-row no-row-background"><div><b>Auto audio</b><div class="small">Speak Japanese when the prompt itself is Japanese.</div></div><label class="switch"><input id="autoAudio" type="checkbox"><span class="slider"></span></label></div>
       <div class="setting-row no-row-background"><div><b>Quick answer</b><div class="small">Advance automatically after feedback/audio.</div></div><label class="switch"><input id="quickMode" type="checkbox"><span class="slider"></span></label></div>
+      <div class="setting-row no-row-background speed-row">
+        <div class="speed-row-body">
+          <b>Learning pace</b>
+          <div class="small">How fast Kiku decides you've got something down. Doesn't change what's tested, just how quickly it moves on.</div>
+          <div class="speed-options" role="group" aria-label="Learning pace">
+            <button type="button" data-speed-choice="slow">Relaxed</button>
+            <button type="button" data-speed-choice="normal">Balanced</button>
+            <button type="button" data-speed-choice="fast">Quick</button>
+          </div>
+        </div>
+      </div>
       <details class="settings-subsection">
         <summary>Question Types</summary>
         <div class="question-type-note small">Choose how Kiku tests eligible learning content. At least one type stays enabled.</div>
@@ -2309,7 +2334,7 @@ const defaultState={
   lastVerbIds:[],
   lastWordKeys:[],
   lastQuestionSigs:[],
-  settings:{autoAudio:true,quickMode:true,listeningMode:true,theme:"sunset",themeCycleRate:30000,questionTypes:{jpToEn:true,enToJp:true,listening:true,identifyForm:true,buildForm:true,fillBlank:true}}
+  settings:{autoAudio:true,quickMode:true,listeningMode:true,theme:"sunset",themeCycleRate:30000,learningSpeed:"normal",questionTypes:{jpToEn:true,enToJp:true,listening:true,identifyForm:true,buildForm:true,fillBlank:true}}
 };
 
 let state=structuredClone(defaultState);
@@ -2720,12 +2745,17 @@ function maybeCelebrateVerbWord(v,wasMastered){
   if(!isNow&&state.celebratedMastery[key])delete state.celebratedMastery[key];
 }
 
+// v37: learning-pace setting scales how fast confidence moves (both up and down)
+// without touching the seen>=6 mastery floor, so pace can't be used to fake mastery
+// early — it only changes how quickly genuine repeated correct/wrong answers add up.
+const LEARNING_SPEED_MULT={slow:0.85,normal:1,fast:1.15};
+function learningSpeedMult(){return LEARNING_SPEED_MULT[state.settings.learningSpeed]||1}
 function applyCorrect(tag,weight,bonus=1){
   if(weight<.10)return;
   const s=tagStat(tag),wasMastered=mastered(s);
   s.seen++;s.correct++;s.streak++;
   const streakBoost=1+Math.min(.30,Math.max(0,s.streak-1)*.08);
-  const lr=.30*weight*bonus*streakBoost;
+  const lr=.30*weight*bonus*streakBoost*learningSpeedMult();
   s.confidence=clamp(s.confidence+lr*(1-s.confidence));
   if(s.streak>=12 && s.confidence>=.90)s.protectedUntil=Math.max(s.protectedUntil||0,state.questionCount+10);
   s.lastSeen=state.questionCount;
@@ -2736,7 +2766,7 @@ function applyWrong(tag,weight,allMastered){
   const s=tagStat(tag);s.seen++;s.wrong++;s.streak=0;s.lastSeen=state.questionCount;
   let effective=weight;
   if(!allMastered && protectedTag(s))effective*=.15;
-  const penalty=.34*effective*Math.max(.35,s.confidence);
+  const penalty=.34*effective*Math.max(.35,s.confidence)*learningSpeedMult();
   s.confidence=clamp(s.confidence-penalty);
   if(!mastered(s)&&state.celebratedMastery[tag.id])delete state.celebratedMastery[tag.id];
   return penalty;
@@ -3388,13 +3418,12 @@ function stopThemeCycle(){
   if(themeCycleTimer){clearInterval(themeCycleTimer);themeCycleTimer=null}
   if(themeCycleRaf){cancelAnimationFrame(themeCycleRaf);themeCycleRaf=null}
   themeCycleStartedAt=0;
-  document.body.classList.remove("theme-cycle-blend");
   document.documentElement.style.removeProperty("--cycle-progress");
   document.querySelectorAll(".theme-card.cycling-current").forEach(btn=>btn.classList.remove("cycling-current"));
 }
 
 function syncSystemThemeColor(){
-  // v36: the OS status/nav bar (meta theme-color) isn't reliably live-updatable across
+  // v36.1: the OS status/nav bar (meta theme-color) isn't reliably live-updatable across
   // Android/Chrome versions once installed, so it's pinned to a fixed black in the
   // HTML/manifest instead of chasing the active theme here. Only our own in-page
   // background (which IS reliably within our control) still tracks the theme.
@@ -4117,6 +4146,9 @@ function renderUI(){
   for(const [id,val] of Object.entries(filterState)){const el=document.getElementById(id);if(el)el.checked=!!val}
   document.querySelectorAll("[data-domain-key]").forEach(el=>el.checked=state.studyDomains?.[el.dataset.domainKey]!==false);
   document.querySelectorAll("[data-question-type]").forEach(el=>el.checked=questionTypeEnabled(el.dataset.questionType));
+  document.getElementById("autoAudio").checked=state.settings.autoAudio;
+  document.getElementById("quickMode").checked=state.settings.quickMode;
+  syncSpeedButtons();
 }
 function objectiveRowHTML(o,category){
   let stat,unlocked=false,label=o.romaji,jp=o.jp||"",meaning=o.meaning||o.lex||o.action||"",pct=10,isM=false,streak=0;
@@ -4433,9 +4465,24 @@ document.getElementById("modal").onclick=e=>{if(e.target.id==="modal")document.g
 document.getElementById("nextBtn").onclick=nextQuestion;
 
 for(const [id,key] of [["autoAudio","autoAudio"],["quickMode","quickMode"]]){
-  const el=document.getElementById(id);el.checked=state.settings[key];
+  const el=document.getElementById(id);
   el.onchange=()=>{state.settings[key]=el.checked;save()};
 }
+
+function syncSpeedButtons(){
+  document.querySelectorAll("[data-speed-choice]").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.speedChoice===state.settings.learningSpeed);
+  });
+}
+document.querySelector(".speed-options").onclick=e=>{
+  const btn=e.target.closest("[data-speed-choice]");
+  if(!btn)return;
+  const choice=btn.dataset.speedChoice;
+  if(!LEARNING_SPEED_MULT[choice])return;
+  state.settings.learningSpeed=choice;
+  syncSpeedButtons();
+  save();
+};
 
 document.getElementById("exportBtn").onclick=exportBackup;
 document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
