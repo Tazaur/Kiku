@@ -1555,7 +1555,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v36.2</div>
+          <div class="small">v36.3</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1563,6 +1563,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
+        <div class="change-entry"><b>v36.3</b><span class="small">Added a Dev Tools panel (tap the DEV BUILD badge): unlock/lock all material, master or reset proficiency, reveal the correct answer, preview each option's tag impact before answering, auto-answer, force a specific question type, copy state, and wipe progress.</span></div>
         <div class="change-entry"><b>v36.2</b><span class="small">Update checker now applies silently in the background instead of showing a banner. (Dev copy only: the DEV BUILD badge shows the running version, and a brief toast confirms after an auto-update.)</span></div>
         <div class="change-entry"><b>v36.1</b><span class="small">Improved sentence practice so it now gives partial credit/penalty per word and grammar point instead of only scoring the sentence as a whole.</span></div>
         <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added a background update checker that keeps the app current automatically.</span></div>
@@ -2290,7 +2291,7 @@ const SENTENCE_BY_ID=Object.fromEntries(SENTENCES.map(s=>[s.id,s]));
 const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
-const APP_VERSION="36.2";
+const APP_VERSION="36.3";
 // v37: this file (dev/index.html) is the testing/staging copy — same app, published at
 // kiku-christ.com/dev so in-progress work can be tried live without touching production.
 // IS_DEV_BUILD namespaces storage so dev never reads/overwrites prod progress (both share
@@ -3489,19 +3490,317 @@ function maybeShowUpdateToast(){
 // v36: unmissable, theme-independent marker so this copy is never mistaken for production
 // (hardcoded colors on purpose — must stay legible no matter which theme is active).
 // v36.1: now also carries the running version number, always visible at a glance.
+// v36.3: now tappable — opens the Dev Tools panel below.
 function showDevBadge(){
   if(!IS_DEV_BUILD)return;
   const el=document.createElement("div");
+  el.id="devBadge";
   el.textContent=`🧪 DEV BUILD v${APP_VERSION}`;
-  el.setAttribute("aria-hidden","true");
+  el.setAttribute("role","button");
+  el.setAttribute("aria-label","Open dev tools");
+  el.title="Tap for dev tools";
   Object.assign(el.style,{
     position:"fixed",top:"0",left:"0",zIndex:"99999",
     background:"#e8b400",color:"#1a1200",
     font:"700 11px/1.6 system-ui,sans-serif",letterSpacing:".02em",
-    padding:"2px 10px",borderBottomRightRadius:"8px",
-    pointerEvents:"none",boxShadow:"0 1px 4px rgba(0,0,0,.35)"
+    padding:"2px 10px",borderBottomRightRadius:"8px",cursor:"pointer",
+    boxShadow:"0 1px 4px rgba(0,0,0,.35)",userSelect:"none"
+  });
+  el.onclick=()=>toggleDevTools();
+  document.body.appendChild(el);
+}
+
+// ===================== Dev Tools (dev build only, never ships to prod) =====================
+// v36.3: a testing panel reachable by tapping the DEV BUILD badge. Every tool either calls
+// the app's own real functions directly (the unlock/introduced arrays, nextQuestion,
+// switchPracticeMode, answer, save) so behavior can never drift from production logic, or —
+// for the per-option impact preview — runs those same real scoring functions against a full
+// snapshot of `state` that's discarded immediately after, so a preview can never leak into
+// real progress. This block is inert everywhere except /dev (IS_DEV_BUILD false disables
+// every entry point into it), so there's no reason it ever needs to be stripped out later.
+const devToolsState={revealAnswer:false,showImpact:false};
+let devChoicesObserver=null;
+
+function devToolsModes(){
+  return [
+    "jpToEn","enToJp","identifyForm","buildForm","listeningMeaning",
+    "objectiveJpToEn","objectiveEnToJp","objectiveListening",
+    "prayerJpToEn","prayerEnToJp","prayerListening",
+    "sentenceJpToEn","sentenceEnToJp","sentenceListening","sentenceFillBlank"
+  ];
+}
+
+function devUnlockAll(){
+  const allVerbIds=VERBS.map(v=>v.id),allObjIds=GENERAL_OBJECTIVES.map(o=>o.id);
+  const allFormIds=FORMS.map(f=>f.id),allPrayerIds=PRAYER.map(p=>p.id);
+  state.unlockedVerbIds=[...allVerbIds];
+  state.introducedVerbIds=[...allVerbIds];
+  state.pendingIntroVerbIds=[];
+  state.unlockedObjectiveIds=[...allObjIds];
+  state.introducedObjectiveIds=[...allObjIds];
+  state.pendingObjectiveIds=[];
+  state.activeFormIds=[...allFormIds];
+  state.introducedForms=[...allFormIds];
+  state.prayerIntroducedIds=[...allPrayerIds];
+  state.prayerPendingIds=[];
+  save();
+  devToast("Unlocked everything");
+}
+function devWipeProgress(){
+  const keepSettings=state.settings;
+  state=freshState();
+  state.settings=keepSettings;
+  save();
+  devRefreshQuestion();
+  devToast("Progress reset — fresh start");
+}
+function devGoTo(curriculum){
+  switchPracticeMode(curriculum);
+  // switchPracticeMode restores whatever question was last shown for that curriculum
+  // (correct for the real tab UI) — which can be a stale intro/waiting screen with no
+  // opts. A dev shortcut should guarantee something testable, so force a fresh one then.
+  if(!current||!current.opts||!current.opts.length)devRefreshQuestion();
+  devToast(`Switched to ${curriculum==="sentences"?"Sentence":"Word"} Practice`);
+}
+function devMasterAllUnlocked(){
+  const maxOut=s=>{s.seen=6;s.correct=6;s.wrong=0;s.confidence=.95};
+  for(const id of state.unlockedVerbIds){
+    const v=VERB_BY_ID[id];if(!v)continue;
+    maxOut(tagStat(lexicalTag(v)));
+    if(v.kind==="suru")maxOut(tagStat(engineTag()));
+  }
+  for(const id of state.activeFormIds){const f=FORM_BY_ID[id];if(f)maxOut(tagStat(formTag(f)))}
+  for(const id of state.unlockedObjectiveIds){const o=GENERAL_BY_ID[id];if(o)maxOut(tagStat(objectiveTag(o)))}
+  for(const id of state.prayerIntroducedIds){const p=PRAYER_BY_ID[id];if(p)maxOut(tagStat(prayerTag(p)))}
+  save();
+  devToast("Mastered all unlocked tags");
+}
+function devResetProficiency(){
+  state.tagStats={};
+  state.sentenceStats={};
+  save();
+  devToast("Proficiency reset (unlocks kept)");
+}
+function devSkipIntro(){
+  const btn=document.querySelector("#introAction button");
+  if(btn)btn.click();else devToast("No intro on screen");
+}
+function devButtonsInOrder(){return[...document.querySelectorAll("#choices button.choice")]}
+function devAutoAnswer(wantCorrect){
+  if(!current||!current.opts||!current.opts.length||answered){devToast("No answerable question on screen");return}
+  const opt=current.opts.find(o=>!!o.correct===wantCorrect);
+  if(!opt){devToast("No matching option on this question");return}
+  const btn=devButtonsInOrder()[current.opts.indexOf(opt)];
+  if(btn)answer(opt,btn);
+}
+function devRerollUntilMode(targetMode){
+  if(!targetMode)return;
+  switchPracticeMode(targetMode.startsWith("sentence")?"sentences":"words");
+  for(let i=0;i<60 && !(current&&current.mode===targetMode);i++)nextQuestion();
+  devToast(current&&current.mode===targetMode?`Found: ${modeTitle(targetMode)}`:"Couldn't find that mode (needs more unlocked material?)");
+}
+async function devCopyState(){
+  try{await navigator.clipboard.writeText(JSON.stringify(state,null,2));devToast("State copied to clipboard")}
+  catch(e){devToast("Clipboard blocked — logged to console instead");console.log(state)}
+}
+function devRefreshQuestion(){
+  const raw=state.curriculum==="sentences"?makeSentenceQuestion():createQuestion();
+  const built=ensureValidQuestion(raw);current=built.q;current.opts=built.opts;
+  renderQuestion();
+}
+
+// ---- live overlays: reveal correct answer / show per-option tag impact ----
+function devClearOverlays(){
+  document.querySelectorAll(".dev-impact").forEach(el=>el.remove());
+  devButtonsInOrder().forEach(b=>{b.classList.remove("dev-correct-hint");b.style.outline="";b.style.outlineOffset=""});
+}
+function previewOptionImpact(opt){
+  // Runs the exact scoring dispatch answer() uses, against a full snapshot of state that's
+  // discarded immediately after — so this can't drift from real scoring, and can't leak any
+  // side effect (questionCount, celebratedMastery, protectedUntil, counters, etc.). Mirrors
+  // answer()'s kind dispatch; only needs updating if a new question kind is ever added.
+  if(!current)return[];
+  const snapshot=structuredClone(state);
+  const ok=!!opt.correct;
+  const touched=[];
+  const track=tag=>{const before=tagStat(tag).confidence;return()=>touched.push({label:tag.label,type:tag.type,before,after:tagStat(tag).confidence})};
+  try{
+    if(current.kind==="sentence"){
+      if(current.mode!=="sentenceFillBlank"){
+        const correctDeps=current.sentence.deps||[];
+        const chosenSent=opt.sentId?SENTENCE_BY_ID[opt.sentId]:null;
+        const chosenDeps=new Set(ok?correctDeps:(chosenSent?.deps||[]));
+        for(const dep of correctDeps){
+          const tag=depTag(dep);if(!tag)continue;
+          const finish=track(tag);
+          if(chosenDeps.has(dep))applyCorrect(tag,SENTENCE_DEP_WEIGHT);else applyWrong(tag,SENTENCE_DEP_WEIGHT,false);
+          finish();
+        }
+      }
+    }else if(current.kind==="objective"){
+      const t=objectiveTag(current.obj);const finish=track(t);
+      if(ok)applyCorrect(t,1);else applyWrong(t,1,false);
+      finish();
+    }else if(current.kind==="prayer"){
+      const tags=prayerTags(current),w=1/Math.max(1,tags.length);
+      const allM=tags.every(x=>mastered(tagStat(x)));
+      for(const t of tags){const finish=track(t);if(ok)applyCorrect(t,w);else applyWrong(t,w,allM);finish()}
+    }else if(!current.kind){
+      const tags=tagsFor(current.v,current.f);
+      const finishers=tags.map(track);
+      scoreQuestion(current,ok);
+      finishers.forEach(f=>f());
+    }
+  }finally{
+    state=snapshot;
+  }
+  return touched;
+}
+function devApplyOverlays(){
+  if(!current||!current.opts||!current.opts.length)return;
+  devClearOverlays();
+  const buttons=devButtonsInOrder();
+  if(buttons.length!==current.opts.length)return;
+  current.opts.forEach((opt,i)=>{
+    const btn=buttons[i];if(!btn)return;
+    if(devToolsState.revealAnswer&&opt.correct&&!answered){
+      btn.classList.add("dev-correct-hint");
+      Object.assign(btn.style,{outline:"3px solid #2ecc71",outlineOffset:"-3px"});
+    }
+    if(devToolsState.showImpact&&!answered){
+      const deltas=previewOptionImpact(opt);
+      if(deltas.length){
+        const box=document.createElement("div");
+        box.className="dev-impact";
+        Object.assign(box.style,{fontSize:"10px",lineHeight:"1.35",marginTop:"4px",opacity:".85",textAlign:"left"});
+        box.innerHTML=deltas.map(d=>{
+          const delta=d.after-d.before,sign=delta>=0?"+":"",color=delta>0?"#2ecc71":delta<0?"#e74c3c":"#999";
+          return `<div style="color:${color}">${esc(d.label)} (${esc(d.type)}) ${d.before.toFixed(2)}→${d.after.toFixed(2)} (${sign}${delta.toFixed(2)})</div>`;
+        }).join("");
+        btn.appendChild(box);
+      }
+    }
+  });
+}
+function devToggle(key){
+  devToolsState[key]=!devToolsState[key];
+  if(devToolsState.revealAnswer||devToolsState.showImpact)devApplyOverlays();else devClearOverlays();
+}
+
+// ---- toast + panel scaffolding ----
+function devToast(msg){
+  const el=document.createElement("div");
+  el.textContent=msg;
+  Object.assign(el.style,{
+    position:"fixed",bottom:"16px",left:"50%",transform:"translateX(-50%)",
+    zIndex:"99999",background:"rgba(20,20,20,.92)",color:"#fff",
+    font:"600 12px/1.4 system-ui,sans-serif",padding:"8px 14px",borderRadius:"999px",
+    boxShadow:"0 4px 14px rgba(0,0,0,.35)",pointerEvents:"none",opacity:"0",transition:"opacity .25s ease"
   });
   document.body.appendChild(el);
+  requestAnimationFrame(()=>{el.style.opacity="1"});
+  setTimeout(()=>{el.style.opacity="0";setTimeout(()=>el.remove(),300)},2200);
+}
+function toggleDevTools(){
+  const ov=document.getElementById("devToolsOverlay");
+  if(!ov)return;
+  const showing=ov.style.display==="flex";
+  ov.style.display=showing?"none":"flex";
+  if(!showing)devRenderPanelBody();
+}
+function hideDevTools(){
+  const ov=document.getElementById("devToolsOverlay");
+  if(ov)ov.style.display="none";
+}
+function devSectionHTML(title,rows){
+  return `<div style="margin:0 0 16px"><div style="font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.6;margin-bottom:8px">${esc(title)}</div>${rows}</div>`;
+}
+function devBtn(action,label,extraStyle){
+  return `<button data-dev-action="${esc(action)}" style="display:block;width:100%;text-align:left;background:#242424;color:#fff;border:1px solid #3a3a3a;border-radius:10px;padding:9px 12px;margin-bottom:6px;font:600 13px/1.3 system-ui,sans-serif;cursor:pointer;${extraStyle||""}">${label}</button>`;
+}
+function devRenderPanelBody(){
+  const body=document.getElementById("devToolsBody");
+  if(!body)return;
+  const modeOptions=devToolsModes().map(m=>`<option value="${esc(m)}">${esc(modeTitle(m)||m)}</option>`).join("");
+  body.innerHTML=
+    devSectionHTML("Unlock & Curriculum",
+      devBtn("unlock-all","🔓 Unlock everything")+
+      devBtn("lock-all","🔒 Lock everything (fresh start)")+
+      devBtn("go-words","📘 Jump to Word Practice")+
+      devBtn("go-sentences","📗 Jump to Sentence Practice")
+    )+
+    devSectionHTML("Proficiency",
+      devBtn("master-all","⭐ Master all unlocked tags")+
+      devBtn("reset-proficiency","♻️ Reset proficiency (keep unlocks)")
+    )+
+    devSectionHTML("Current Question",
+      `<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="devRevealToggle" ${devToolsState.revealAnswer?"checked":""}> Reveal correct answer</label>`+
+      `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px"><input type="checkbox" id="devImpactToggle" ${devToolsState.showImpact?"checked":""}> Show tag impact per option</label>`+
+      devBtn("auto-correct","✅ Auto-answer correct")+
+      devBtn("auto-wrong","❌ Auto-answer wrong")+
+      devBtn("skip-intro",'⏭ Skip intro / "Got it"')
+    )+
+    devSectionHTML("Question Generator",
+      `<select id="devModeSelect" style="width:100%;padding:8px;border-radius:10px;background:#242424;color:#fff;border:1px solid #3a3a3a;margin-bottom:6px;font-size:13px">${modeOptions}</select>`+
+      devBtn("force-mode","🎯 Reroll until this mode appears")
+    )+
+    devSectionHTML("State",
+      devBtn("copy-state","📋 Copy state JSON to clipboard")+
+      devBtn("wipe-progress","🗑️ Wipe all progress","background:#3a1f1f;border-color:#5a2a2a")
+    );
+  body.querySelector("#devRevealToggle").onchange=()=>devToggle("revealAnswer");
+  body.querySelector("#devImpactToggle").onchange=()=>devToggle("showImpact");
+}
+function devRunAction(action){
+  if(action==="unlock-all")devUnlockAll();
+  else if(action==="lock-all")devWipeProgress();
+  else if(action==="go-words")devGoTo("words");
+  else if(action==="go-sentences")devGoTo("sentences");
+  else if(action==="master-all")devMasterAllUnlocked();
+  else if(action==="reset-proficiency")devResetProficiency();
+  else if(action==="auto-correct")devAutoAnswer(true);
+  else if(action==="auto-wrong")devAutoAnswer(false);
+  else if(action==="skip-intro")devSkipIntro();
+  else if(action==="force-mode"){const sel=document.getElementById("devModeSelect");devRerollUntilMode(sel?.value)}
+  else if(action==="copy-state")devCopyState();
+  else if(action==="wipe-progress")devWipeProgress();
+}
+function buildDevToolsPanel(){
+  if(!IS_DEV_BUILD)return;
+  const overlay=document.createElement("div");
+  overlay.id="devToolsOverlay";
+  Object.assign(overlay.style,{
+    position:"fixed",inset:"0",zIndex:"99997",background:"rgba(0,0,0,.55)",
+    display:"none",alignItems:"flex-end",justifyContent:"center"
+  });
+  const panel=document.createElement("div");
+  panel.id="devToolsPanel";
+  Object.assign(panel.style,{
+    width:"100%",maxWidth:"480px",maxHeight:"85vh",overflowY:"auto",
+    background:"#161616",color:"#f0f0f0",borderRadius:"16px 16px 0 0",
+    padding:"14px 16px 28px",boxSizing:"border-box",
+    boxShadow:"0 -8px 30px rgba(0,0,0,.5)"
+  });
+  panel.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-weight:800;font-size:15px">🧪 Dev Tools</div>
+      <button id="devToolsClose" style="background:transparent;border:0;color:#fff;font-size:18px;cursor:pointer;padding:4px 8px">✕</button>
+    </div>
+    <div id="devToolsBody"></div>
+  `;
+  overlay.appendChild(panel);
+  overlay.addEventListener("click",e=>{if(e.target===overlay)hideDevTools()});
+  panel.querySelector("#devToolsClose").onclick=hideDevTools;
+  panel.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-dev-action]");
+    if(btn)devRunAction(btn.dataset.devAction);
+  });
+  document.body.appendChild(overlay);
+  devChoicesObserver=new MutationObserver(()=>{
+    if(devToolsState.revealAnswer||devToolsState.showImpact)devApplyOverlays();
+  });
+  const choicesEl=document.getElementById("choices");
+  if(choicesEl)devChoicesObserver.observe(choicesEl,{childList:true});
 }
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
@@ -4650,6 +4949,7 @@ selfTest();
 
 (async function start(){
   showDevBadge();
+  buildDevToolsPanel();
   await hydrateState();
   applyTheme(state.settings.theme||"sunset",false);
   if(!state.unlockedVerbIds.length){
