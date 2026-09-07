@@ -1074,8 +1074,6 @@ body{min-height:0}
 .install-banner .install-go{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:var(--accent-text);padding:8px 12px;font-size:12px}
 .install-banner .install-dismiss{background:transparent;color:var(--text-muted);padding:8px 6px;font-size:14px}
 
-/* v36.1: update-available banner — same layout as install-banner, reuses its classes */
-
 
 
 /* v33: domain-first Christian curriculum + Active Learning focus */
@@ -1430,18 +1428,6 @@ body{
     </div>
   </div>
 
-  <div class="install-banner" id="updateBanner">
-    <span class="install-icon" aria-hidden="true">🔄</span>
-    <div class="install-copy">
-      <b>Update available</b>
-      <span id="updateBannerText">A newer version is ready.</span>
-    </div>
-    <div class="install-actions">
-      <button class="install-go" id="updateGoBtn" type="button">Refresh</button>
-      <button class="install-dismiss" id="updateDismissBtn" type="button" aria-label="Dismiss">✕</button>
-    </div>
-  </div>
-
   <div class="curriculum-tabs">
     <button class="curriculum-tab active" id="coreTab">Word Practice</button>
     <button class="curriculum-tab" id="prayerTab">Sentence Practice</button>
@@ -1569,7 +1555,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v36.1</div>
+          <div class="small">v36.2</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1577,8 +1563,9 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
+        <div class="change-entry"><b>v36.2</b><span class="small">Update checker now applies silently in the background instead of showing a banner. (Dev copy only: the DEV BUILD badge shows the running version, and a brief toast confirms after an auto-update.)</span></div>
         <div class="change-entry"><b>v36.1</b><span class="small">Improved sentence practice so it now gives partial credit/penalty per word and grammar point instead of only scoring the sentence as a whole.</span></div>
-        <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added an update checker that offers a one-tap refresh when a newer version is deployed.</span></div>
+        <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added a background update checker that keeps the app current automatically.</span></div>
         <div class="change-entry"><b>v35</b><span class="small">Improved teaching and practice flow, added prayer language, finalized theme transitions and Spectrum Shift, updated the app icon, and fixed several small internal bugs.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, theme-cycle refinements, and improved iOS installed-app behavior.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
@@ -2303,7 +2290,7 @@ const SENTENCE_BY_ID=Object.fromEntries(SENTENCES.map(s=>[s.id,s]));
 const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
-const APP_VERSION="36.1";
+const APP_VERSION="36.2";
 // v37: this file (dev/index.html) is the testing/staging copy — same app, published at
 // kiku-christ.com/dev so in-progress work can be tried live without touching production.
 // IS_DEV_BUILD namespaces storage so dev never reads/overwrites prod progress (both share
@@ -3449,23 +3436,19 @@ function isNewerVersion(a,b){
   if(amaj!==bmaj)return amaj>bmaj;
   return amin>bmin;
 }
-let pendingUpdateVersion=null;
-function updateBannerDismissedFor(v){
-  try{return sessionStorage.getItem("kiku_update_dismissed")===v}catch(e){return false}
+// v36.2: updates apply silently — no banner, no click required. Only two moments ever
+// trigger an auto-reload: the very first load of a visit (nothing on screen yet to
+// interrupt) and the moment the app regains focus after being backgrounded (the natural
+// "resuming" instant). The periodic timer below only checks — it's allowed to *apply*
+// only while the tab is hidden, so an ongoing, actively-visible session is never yanked
+// out from under whoever's mid-lesson. A flag is left for the next load to pick up so dev
+// (only) can show a brief "updated" toast; production stays completely silent.
+function applyUpdateSilently(newVersion){
+  try{sessionStorage.setItem("kiku_update_toast",newVersion)}catch(e){}
+  location.replace(location.pathname+"?v="+Date.now());
 }
-function dismissUpdateBanner(){
-  try{if(pendingUpdateVersion)sessionStorage.setItem("kiku_update_dismissed",pendingUpdateVersion)}catch(e){}
-  document.getElementById("updateBanner")?.classList.remove("show");
-}
-function showUpdateBanner(serverVersion){
-  pendingUpdateVersion=serverVersion;
-  if(updateBannerDismissedFor(serverVersion))return;
-  const banner=document.getElementById("updateBanner");
-  if(!banner)return;
-  document.getElementById("updateBannerText").textContent=`v${serverVersion} is ready — tap Refresh to update.`;
-  banner.classList.add("show");
-}
-async function checkForUpdate(){
+async function checkForUpdate(opts){
+  const allowApply=!opts||opts.allowApply!==false;
   try{
     const res=await fetch(location.pathname,{cache:"no-store"});
     if(!res.ok)return;
@@ -3473,18 +3456,43 @@ async function checkForUpdate(){
     const m=text.match(/const APP_VERSION="([^"]+)"/);
     if(!m)return;
     const serverVersion=m[1];
-    if(serverVersion!==APP_VERSION && isNewerVersion(serverVersion,APP_VERSION))showUpdateBanner(serverVersion);
+    if(allowApply && serverVersion!==APP_VERSION && isNewerVersion(serverVersion,APP_VERSION)){
+      applyUpdateSilently(serverVersion);
+    }
   }catch(e){/* offline or blocked — silently skip this check, next trigger will retry */}
 }
-function applyUpdate(){
-  location.replace(location.pathname+"?v="+Date.now());
+function showUpdateToast(v){
+  if(!IS_DEV_BUILD)return;
+  const el=document.createElement("div");
+  el.textContent=`🔄 Updated to v${v}`;
+  el.setAttribute("aria-hidden","true");
+  Object.assign(el.style,{
+    position:"fixed",bottom:"16px",left:"50%",transform:"translateX(-50%)",
+    zIndex:"99999",background:"rgba(20,20,20,.92)",color:"#fff",
+    font:"600 12px/1.4 system-ui,sans-serif",padding:"8px 14px",borderRadius:"999px",
+    boxShadow:"0 4px 14px rgba(0,0,0,.35)",pointerEvents:"none",
+    opacity:"0",transition:"opacity .25s ease"
+  });
+  document.body.appendChild(el);
+  requestAnimationFrame(()=>{el.style.opacity="1"});
+  setTimeout(()=>{
+    el.style.opacity="0";
+    setTimeout(()=>el.remove(),300);
+  },3000);
 }
-// v37: unmissable, theme-independent marker so this copy is never mistaken for production
+function maybeShowUpdateToast(){
+  if(!IS_DEV_BUILD)return;
+  let v=null;
+  try{v=sessionStorage.getItem("kiku_update_toast");sessionStorage.removeItem("kiku_update_toast")}catch(e){}
+  if(v)showUpdateToast(v);
+}
+// v36: unmissable, theme-independent marker so this copy is never mistaken for production
 // (hardcoded colors on purpose — must stay legible no matter which theme is active).
+// v36.1: now also carries the running version number, always visible at a glance.
 function showDevBadge(){
   if(!IS_DEV_BUILD)return;
   const el=document.createElement("div");
-  el.textContent="🧪 DEV BUILD";
+  el.textContent=`🧪 DEV BUILD v${APP_VERSION}`;
   el.setAttribute("aria-hidden","true");
   Object.assign(el.style,{
     position:"fixed",top:"0",left:"0",zIndex:"99999",
@@ -4530,8 +4538,6 @@ document.getElementById("installGoBtn").onclick=async()=>{
   try{await promptEvent.userChoice}catch(e){}
   hideInstallBanner();
 };
-document.getElementById("updateDismissBtn").onclick=dismissUpdateBanner;
-document.getElementById("updateGoBtn").onclick=applyUpdate;
 document.getElementById("skipAudioBtn").onclick=skipAudioQuestion;
 document.getElementById("themeGallery").onclick=e=>{
   const btn=e.target.closest("[data-theme-choice]");
@@ -4659,15 +4665,19 @@ selfTest();
   autoAudioModeVisited[state.curriculum]=true;
   save();
   maybeShowInstallBanner();
-  // v36.1: check for a newer deployed version — on load, whenever the app regains focus
-  // (covers reopening a backgrounded/installed PWA, the main real-world case), and on a
-  // timer as a fallback for long single sessions. Dev checks far more often since it's
-  // the copy that's actively changing.
+  maybeShowUpdateToast();
+  // v36.1: silently pick up a newer deployed version — on load, and whenever the app
+  // regains focus (covers reopening a backgrounded/installed PWA, the main real-world
+  // case). The periodic timer is a fallback for long single sessions but is only allowed
+  // to actually reload while the tab is hidden, so it never interrupts someone mid-lesson.
+  // Dev checks far more often since it's the copy that's actively changing.
   checkForUpdate();
   document.addEventListener("visibilitychange",()=>{
     if(document.visibilityState==="visible")checkForUpdate();
   });
-  setInterval(checkForUpdate, IS_DEV_BUILD?2*60*1000:20*60*1000);
+  setInterval(()=>{
+    checkForUpdate({allowApply: document.visibilityState!=="visible"});
+  }, IS_DEV_BUILD?2*60*1000:20*60*1000);
 })();
 </script>
 </body>
