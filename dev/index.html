@@ -1074,7 +1074,7 @@ body{min-height:0}
 .install-banner .install-go{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:var(--accent-text);padding:8px 12px;font-size:12px}
 .install-banner .install-dismiss{background:transparent;color:var(--text-muted);padding:8px 6px;font-size:14px}
 
-/* v37.1: update-available banner — same layout as install-banner, reuses its classes */
+/* v36.1: update-available banner — same layout as install-banner, reuses its classes */
 
 
 
@@ -1569,7 +1569,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v37.1</div>
+          <div class="small">v36.1</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1577,7 +1577,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v37.1</b><span class="small">Improved sentence practice so it now gives partial credit/penalty per word and grammar point instead of only scoring the sentence as a whole.</span></div>
+        <div class="change-entry"><b>v36.1</b><span class="small">Improved sentence practice so it now gives partial credit/penalty per word and grammar point instead of only scoring the sentence as a whole.</span></div>
         <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added an update checker that offers a one-tap refresh when a newer version is deployed.</span></div>
         <div class="change-entry"><b>v35</b><span class="small">Improved teaching and practice flow, added prayer language, finalized theme transitions and Spectrum Shift, updated the app icon, and fixed several small internal bugs.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, theme-cycle refinements, and improved iOS installed-app behavior.</span></div>
@@ -2303,7 +2303,7 @@ const SENTENCE_BY_ID=Object.fromEntries(SENTENCES.map(s=>[s.id,s]));
 const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
-const APP_VERSION="37.1";
+const APP_VERSION="36.1";
 // v37: this file (dev/index.html) is the testing/staging copy — same app, published at
 // kiku-christ.com/dev so in-progress work can be tried live without touching production.
 // IS_DEV_BUILD namespaces storage so dev never reads/overwrites prod progress (both share
@@ -3434,7 +3434,7 @@ function maybeShowInstallBanner(){
   if(deferredInstallPrompt)showInstallBanner("chromium");
   else if(IS_IOS)showInstallBanner("ios");
 }
-// v37.1: lightweight update checker. No service worker/Cache API is involved — this just
+// v36.1: lightweight update checker. No service worker/Cache API is involved — this just
 // refetches this exact document with cache:"no-store" (bypassing any HTTP cache) and reads
 // the APP_VERSION baked into the response text, without parsing the whole page. Handles
 // both whole-number prod versions ("38") and decimal dev versions ("37.4") by comparing
@@ -4659,7 +4659,7 @@ selfTest();
   autoAudioModeVisited[state.curriculum]=true;
   save();
   maybeShowInstallBanner();
-  // v37.1: check for a newer deployed version — on load, whenever the app regains focus
+  // v36.1: check for a newer deployed version — on load, whenever the app regains focus
   // (covers reopening a backgrounded/installed PWA, the main real-world case), and on a
   // timer as a fallback for long single sessions. Dev checks far more often since it's
   // the copy that's actively changing.

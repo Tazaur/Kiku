@@ -1074,7 +1074,7 @@ body{min-height:0}
 .install-banner .install-go{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:var(--accent-text);padding:8px 12px;font-size:12px}
 .install-banner .install-dismiss{background:transparent;color:var(--text-muted);padding:8px 6px;font-size:14px}
 
-/* v37.1: update-available banner — same layout as install-banner, reuses its classes */
+/* v36.1: update-available banner — same layout as install-banner, reuses its classes */
 
 
 
@@ -2302,7 +2302,7 @@ const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
 const APP_VERSION="36";
-// v37.1: true only when served from the /dev staging copy — used by the update checker
+// v36.1: true only when served from the /dev staging copy — used by the update checker
 // to pick a more aggressive poll interval there. Always false here in production.
 const IS_DEV_BUILD=/\/dev(\/(index\.html)?)?$/i.test(location.pathname);
 const STORE_KEY="kiku_christian_japanese";
@@ -3416,7 +3416,7 @@ function maybeShowInstallBanner(){
   if(deferredInstallPrompt)showInstallBanner("chromium");
   else if(IS_IOS)showInstallBanner("ios");
 }
-// v37.1: lightweight update checker. No service worker/Cache API is involved — this just
+// v36.1: lightweight update checker. No service worker/Cache API is involved — this just
 // refetches this exact document with cache:"no-store" (bypassing any HTTP cache) and reads
 // the APP_VERSION baked into the response text, without parsing the whole page. Handles
 // both whole-number prod versions ("38") and decimal dev versions ("37.4") by comparing
@@ -4602,7 +4602,7 @@ selfTest();
   autoAudioModeVisited[state.curriculum]=true;
   save();
   maybeShowInstallBanner();
-  // v37.1: check for a newer deployed version — on load, whenever the app regains focus
+  // v36.1: check for a newer deployed version — on load, whenever the app regains focus
   // (covers reopening a backgrounded/installed PWA, the main real-world case), and on a
   // timer as a fallback for long single sessions. Dev checks far more often since it's
   // the copy that's actively changing.
