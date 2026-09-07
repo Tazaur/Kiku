@@ -1074,6 +1074,8 @@ body{min-height:0}
 .install-banner .install-go{background:linear-gradient(90deg,var(--accent-2),var(--accent));color:var(--accent-text);padding:8px 12px;font-size:12px}
 .install-banner .install-dismiss{background:transparent;color:var(--text-muted);padding:8px 6px;font-size:14px}
 
+/* v37.1: update-available banner — same layout as install-banner, reuses its classes */
+
 
 
 /* v33: domain-first Christian curriculum + Active Learning focus */
@@ -1428,6 +1430,18 @@ body{
     </div>
   </div>
 
+  <div class="install-banner" id="updateBanner">
+    <span class="install-icon" aria-hidden="true">🔄</span>
+    <div class="install-copy">
+      <b>Update available</b>
+      <span id="updateBannerText">A newer version is ready.</span>
+    </div>
+    <div class="install-actions">
+      <button class="install-go" id="updateGoBtn" type="button">Refresh</button>
+      <button class="install-dismiss" id="updateDismissBtn" type="button" aria-label="Dismiss">✕</button>
+    </div>
+  </div>
+
   <div class="curriculum-tabs">
     <button class="curriculum-tab active" id="coreTab">Word Practice</button>
     <button class="curriculum-tab" id="prayerTab">Sentence Practice</button>
@@ -1563,7 +1577,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, and fixed theme colors on the explanation modal and several buttons.</span></div>
+        <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added an update checker that offers a one-tap refresh when a newer version is deployed.</span></div>
         <div class="change-entry"><b>v35</b><span class="small">Improved teaching and practice flow, added prayer language, finalized theme transitions and Spectrum Shift, updated the app icon, and fixed several small internal bugs.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, theme-cycle refinements, and improved iOS installed-app behavior.</span></div>
         <div class="change-entry"><b>v33</b><span class="small">Reorganized Objectives into five Christian communication domains, rebuilt Language Skills, expanded practical expressions and Explain, and refined Active Learning.</span></div>
@@ -2288,6 +2302,9 @@ const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
 const APP_VERSION="36";
+// v37.1: true only when served from the /dev staging copy — used by the update checker
+// to pick a more aggressive poll interval there. Always false here in production.
+const IS_DEV_BUILD=/\/dev(\/(index\.html)?)?$/i.test(location.pathname);
 const STORE_KEY="kiku_christian_japanese";
 const LEGACY_STORE_KEY="church_japanese_listener_v16";
 const DB_NAME="KikuChristianJapaneseDB";
@@ -3399,6 +3416,51 @@ function maybeShowInstallBanner(){
   if(deferredInstallPrompt)showInstallBanner("chromium");
   else if(IS_IOS)showInstallBanner("ios");
 }
+// v37.1: lightweight update checker. No service worker/Cache API is involved — this just
+// refetches this exact document with cache:"no-store" (bypassing any HTTP cache) and reads
+// the APP_VERSION baked into the response text, without parsing the whole page. Handles
+// both whole-number prod versions ("38") and decimal dev versions ("37.4") by comparing
+// [major,minor] as integers rather than parseFloat, since parseFloat would misorder e.g.
+// "37.10" (10th edit) as less than "37.9" (9th edit).
+function parseVersionParts(v){
+  const parts=String(v).split(".");
+  return [Number(parts[0])||0, Number(parts[1])||0];
+}
+function isNewerVersion(a,b){
+  const[amaj,amin]=parseVersionParts(a),[bmaj,bmin]=parseVersionParts(b);
+  if(amaj!==bmaj)return amaj>bmaj;
+  return amin>bmin;
+}
+let pendingUpdateVersion=null;
+function updateBannerDismissedFor(v){
+  try{return sessionStorage.getItem("kiku_update_dismissed")===v}catch(e){return false}
+}
+function dismissUpdateBanner(){
+  try{if(pendingUpdateVersion)sessionStorage.setItem("kiku_update_dismissed",pendingUpdateVersion)}catch(e){}
+  document.getElementById("updateBanner")?.classList.remove("show");
+}
+function showUpdateBanner(serverVersion){
+  pendingUpdateVersion=serverVersion;
+  if(updateBannerDismissedFor(serverVersion))return;
+  const banner=document.getElementById("updateBanner");
+  if(!banner)return;
+  document.getElementById("updateBannerText").textContent=`v${serverVersion} is ready — tap Refresh to update.`;
+  banner.classList.add("show");
+}
+async function checkForUpdate(){
+  try{
+    const res=await fetch(location.pathname,{cache:"no-store"});
+    if(!res.ok)return;
+    const text=await res.text();
+    const m=text.match(/const APP_VERSION="([^"]+)"/);
+    if(!m)return;
+    const serverVersion=m[1];
+    if(serverVersion!==APP_VERSION && isNewerVersion(serverVersion,APP_VERSION))showUpdateBanner(serverVersion);
+  }catch(e){/* offline or blocked — silently skip this check, next trigger will retry */}
+}
+function applyUpdate(){
+  location.replace(location.pathname+"?v="+Date.now());
+}
 window.addEventListener("beforeinstallprompt",e=>{
   e.preventDefault();
   deferredInstallPrompt=e;
@@ -4412,6 +4474,8 @@ document.getElementById("installGoBtn").onclick=async()=>{
   try{await promptEvent.userChoice}catch(e){}
   hideInstallBanner();
 };
+document.getElementById("updateDismissBtn").onclick=dismissUpdateBanner;
+document.getElementById("updateGoBtn").onclick=applyUpdate;
 document.getElementById("skipAudioBtn").onclick=skipAudioQuestion;
 document.getElementById("themeGallery").onclick=e=>{
   const btn=e.target.closest("[data-theme-choice]");
@@ -4538,6 +4602,15 @@ selfTest();
   autoAudioModeVisited[state.curriculum]=true;
   save();
   maybeShowInstallBanner();
+  // v37.1: check for a newer deployed version — on load, whenever the app regains focus
+  // (covers reopening a backgrounded/installed PWA, the main real-world case), and on a
+  // timer as a fallback for long single sessions. Dev checks far more often since it's
+  // the copy that's actively changing.
+  checkForUpdate();
+  document.addEventListener("visibilitychange",()=>{
+    if(document.visibilityState==="visible")checkForUpdate();
+  });
+  setInterval(checkForUpdate, IS_DEV_BUILD?2*60*1000:20*60*1000);
 })();
 </script>
 </body>
