@@ -1555,7 +1555,7 @@ body{
         <summary>About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v36.3</div>
+          <div class="small">v36.4</div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
         </div>
       </details>
@@ -1563,6 +1563,7 @@ body{
 <details class="settings-subsection">
         <summary>Version changelog</summary>
 <div class="changelog-list">
+        <div class="change-entry"><b>v36.4</b><span class="small">Word/verb-form practice now gives the same partial credit as sentences: picking a wrong option that shares a tag with the correct answer (e.g. the right form, wrong verb) credits that shared tag instead of penalizing it — only the tag actually gotten wrong takes the hit. Dev Tools refined: Unlock Everything now gives a real 20% proficiency baseline instead of leaving tags untouched, added a near-mastery tool, auto-answer/skip-intro are now toggles that run continuously, added a disable-audio toggle, and removed a couple of tools duplicated by the app's own UI.</span></div>
         <div class="change-entry"><b>v36.3</b><span class="small">Added a Dev Tools panel (tap the DEV BUILD badge): unlock/lock all material, master or reset proficiency, reveal the correct answer, preview each option's tag impact before answering, auto-answer, force a specific question type, copy state, and wipe progress.</span></div>
         <div class="change-entry"><b>v36.2</b><span class="small">Update checker now applies silently in the background instead of showing a banner. (Dev copy only: the DEV BUILD badge shows the running version, and a brief toast confirms after an auto-update.)</span></div>
         <div class="change-entry"><b>v36.1</b><span class="small">Improved sentence practice so it now gives partial credit/penalty per word and grammar point instead of only scoring the sentence as a whole.</span></div>
@@ -2291,7 +2292,7 @@ const SENTENCE_BY_ID=Object.fromEntries(SENTENCES.map(s=>[s.id,s]));
 const VERB_BY_ID=Object.fromEntries(VERBS.map(v=>[v.id,v]));
 const APP_NAME="Kiku: Christian Japanese";
 const APP_SHORT_NAME="Kiku";
-const APP_VERSION="36.3";
+const APP_VERSION="36.4";
 // v37: this file (dev/index.html) is the testing/staging copy — same app, published at
 // kiku-christ.com/dev so in-progress work can be tried live without touching production.
 // IS_DEV_BUILD namespaces storage so dev never reads/overwrites prod progress (both share
@@ -2794,7 +2795,7 @@ function applyWrong(tag,weight,allMastered){
   if(!mastered(s)&&state.celebratedMastery[tag.id])delete state.celebratedMastery[tag.id];
   return penalty;
 }
-function scoreQuestion(q,ok){
+function scoreQuestion(q,ok,opt){
   const wasWordMastered=wordMasteredByKey(`v:${q.v.id}`);
   const tags=tagsFor(q.v,q.f), weights=attribution(q.mode,q.v,q.f);
   const allM=tags.every(t=>mastered(tagStat(t)));
@@ -2802,9 +2803,25 @@ function scoreQuestion(q,ok){
   if(ok){
     for(const t of tags)applyCorrect(t,weights[t.id]||0);
   }else{
+    // v36.4: compare the correct answer's tags against whichever wrong option was chosen,
+    // same idea as the sentence dep partial-credit system. jpToEn/enToJp/listeningMeaning
+    // distractors vary the verb but keep q.f (opt.verbId set); identifyForm/buildForm
+    // distractors vary the form but keep q.v (opt.formId set) — either way, the tag(s)
+    // shared with the mistaken pick (e.g. same form, wrong verb) get credit instead of a
+    // blanket penalty; only the tag(s) the choice actually got wrong take the hit. Falls
+    // back to penalizing everything if the option doesn't carry enough identity info to
+    // compare (shouldn't happen for these four modes, but keeps old behavior as a safety net).
+    const chosenVerb=opt?.verbId?VERB_BY_ID[opt.verbId]:null;
+    const chosenForm=opt?.formId?FORM_BY_ID[opt.formId]:null;
+    const chosenTagIds=(chosenVerb||chosenForm)?new Set(tagsFor(chosenVerb||q.v,chosenForm||q.f).map(t=>t.id)):null;
     for(const t of tags){
-      const amount=applyWrong(t,weights[t.id]||0,allM);
-      if(amount>0)penalties.push({tagId:t.id,amount});
+      const weight=weights[t.id]||0;
+      if(chosenTagIds&&chosenTagIds.has(t.id)){
+        applyCorrect(t,weight);
+      }else{
+        const amount=applyWrong(t,weight,allM);
+        if(amount>0)penalties.push({tagId:t.id,amount});
+      }
     }
   }
   if(q.f.id!=="plain"){
@@ -2942,6 +2959,11 @@ function sentenceModes(){
 
 
 function speakText(text){
+  // v36.4: single choke point for every audio call in the app (speakJapanese/speakSurface
+  // both delegate here) — disabling audio in Dev Tools short-circuits all of them at once,
+  // including the up-to-3.5s fallback wait below, so quickMode's answer→next-question
+  // advance never has to wait on speech synthesis during automated testing.
+  if(IS_DEV_BUILD&&devToolsState.audioDisabled)return Promise.resolve();
   return new Promise(resolve=>{
     if(!("speechSynthesis" in window)||!text){resolve();return}
     const token=++audioToken;
@@ -3005,6 +3027,7 @@ function speakSurface(v,f){
   return speakJapanese(s.jp,s.romaji);
 }
 function tone(ok){
+  if(IS_DEV_BUILD&&devToolsState.audioDisabled)return;
   try{const C=window.AudioContext||window.webkitAudioContext;const c=new C(),o=c.createOscillator(),g=c.createGain();o.frequency.value=ok?660:180;g.gain.value=.04;o.connect(g);g.connect(c.destination);o.start();o.stop(c.currentTime+.09)}catch(e){}
 }
 function flash(ok){
@@ -3310,15 +3333,15 @@ function uniqueOptions(arr){
 }
 function choiceMeaning(q){
   const candidates=shuffle(state.unlockedVerbIds.map(id=>VERB_BY_ID[id]).filter(v=>v.id!==q.v.id));
-  let opts=[{label:meaning(q.v,q.f),correct:true}];
+  let opts=[{label:meaning(q.v,q.f),correct:true,verbId:q.v.id}];
   for(const v of candidates){
     const label=meaning(v,q.f);
-    if(!opts.some(o=>o.label===label))opts.push({label,correct:false});
+    if(!opts.some(o=>o.label===label))opts.push({label,correct:false,verbId:v.id});
     if(opts.length>=4)break;
   }
   if(opts.length<2){
     for(const v of shuffle(VERBS.filter(v=>v.id!==q.v.id))){
-      const label=meaning(v,q.f);if(!opts.some(o=>o.label===label))opts.push({label,correct:false});
+      const label=meaning(v,q.f);if(!opts.some(o=>o.label===label))opts.push({label,correct:false,verbId:v.id});
       if(opts.length>=4)break;
     }
   }
@@ -3326,14 +3349,14 @@ function choiceMeaning(q){
 }
 function choiceJapanese(q){
   const candidates=shuffle(state.unlockedVerbIds.map(id=>VERB_BY_ID[id]).filter(v=>v.id!==q.v.id));
-  let opts=[{label:surface(q.v,q.f).romaji,correct:true,jp:surface(q.v,q.f).jp}];
+  let opts=[{label:surface(q.v,q.f).romaji,correct:true,jp:surface(q.v,q.f).jp,verbId:q.v.id}];
   for(const v of candidates){
-    const s=surface(v,q.f);opts.push({label:s.romaji,correct:false,jp:s.jp});
+    const s=surface(v,q.f);opts.push({label:s.romaji,correct:false,jp:s.jp,verbId:v.id});
     if(uniqueOptions(opts).length>=4)break;
   }
   if(uniqueOptions(opts).length<2){
     for(const v of shuffle(VERBS.filter(v=>v.id!==q.v.id))){
-      const s=surface(v,q.f);opts.push({label:s.romaji,correct:false,jp:s.jp});
+      const s=surface(v,q.f);opts.push({label:s.romaji,correct:false,jp:s.jp,verbId:v.id});
       if(uniqueOptions(opts).length>=4)break;
     }
   }
@@ -3518,8 +3541,8 @@ function showDevBadge(){
 // snapshot of `state` that's discarded immediately after, so a preview can never leak into
 // real progress. This block is inert everywhere except /dev (IS_DEV_BUILD false disables
 // every entry point into it), so there's no reason it ever needs to be stripped out later.
-const devToolsState={revealAnswer:false,showImpact:false};
-let devChoicesObserver=null;
+const devToolsState={revealAnswer:false,showImpact:false,autoAnswerMode:null,autoSkipIntro:false,audioDisabled:false};
+let devChoicesObserver=null,devAutoAnswerTimer=null,devSkipIntroTimer=null;
 
 function devToolsModes(){
   return [
@@ -3543,8 +3566,26 @@ function devUnlockAll(){
   state.introducedForms=[...allFormIds];
   state.prayerIntroducedIds=[...allPrayerIds];
   state.prayerPendingIds=[];
+  // v36.4: "unlock" alone used to leave every tag at its brand-new default (seen:0,
+  // confidence:.10), which still fails depReady's seen>0 check — so sentences stayed
+  // locked and nothing looked meaningfully unlocked in the Objectives view. Give
+  // everything a real (if modest) baseline instead: 20% confidence with one real
+  // seen/correct, which satisfies every seen>0 readiness gate at once.
+  const baseline=s=>{s.seen=1;s.correct=1;s.wrong=0;s.confidence=.20};
+  for(const id of allVerbIds){
+    const v=VERB_BY_ID[id];if(!v)continue;
+    baseline(tagStat(lexicalTag(v)));
+    if(v.kind==="suru")baseline(tagStat(engineTag()));
+  }
+  for(const id of allFormIds){const f=FORM_BY_ID[id];if(f)baseline(tagStat(formTag(f)))}
+  for(const id of allObjIds){const o=GENERAL_BY_ID[id];if(o)baseline(tagStat(objectiveTag(o)))}
+  for(const id of allPrayerIds){const p=PRAYER_BY_ID[id];if(p)baseline(tagStat(prayerTag(p)))}
+  // Every sentence's deps are ready now — introduce them too so they're immediately
+  // practiceable instead of queued behind 41 "new sentence" intro screens.
+  state.sentenceIntroducedIds=SENTENCES.map(s=>s.id);
+  for(const s of SENTENCES){const st=sentenceStat(s.id);st.seen=5;st.correct=1;st.wrong=4}
   save();
-  devToast("Unlocked everything");
+  devToast("Unlocked everything (20% baseline)");
 }
 function devWipeProgress(){
   const keepSettings=state.settings;
@@ -3553,14 +3594,6 @@ function devWipeProgress(){
   save();
   devRefreshQuestion();
   devToast("Progress reset — fresh start");
-}
-function devGoTo(curriculum){
-  switchPracticeMode(curriculum);
-  // switchPracticeMode restores whatever question was last shown for that curriculum
-  // (correct for the real tab UI) — which can be a stale intro/waiting screen with no
-  // opts. A dev shortcut should guarantee something testable, so force a fresh one then.
-  if(!current||!current.opts||!current.opts.length)devRefreshQuestion();
-  devToast(`Switched to ${curriculum==="sentences"?"Sentence":"Word"} Practice`);
 }
 function devMasterAllUnlocked(){
   const maxOut=s=>{s.seen=6;s.correct=6;s.wrong=0;s.confidence=.95};
@@ -3575,23 +3608,65 @@ function devMasterAllUnlocked(){
   save();
   devToast("Mastered all unlocked tags");
 }
+function devNearMasteryAllUnlocked(){
+  // Deliberately short of mastered()'s seen>=6 threshold (seen:5 here) so this stays
+  // distinguishable from "Master all" — useful for testing the last stretch toward
+  // mastery, celebrations, and near-threshold UI states.
+  const nearOut=s=>{s.seen=5;s.correct=4;s.wrong=1;s.confidence=.85};
+  for(const id of state.unlockedVerbIds){
+    const v=VERB_BY_ID[id];if(!v)continue;
+    nearOut(tagStat(lexicalTag(v)));
+    if(v.kind==="suru")nearOut(tagStat(engineTag()));
+  }
+  for(const id of state.activeFormIds){const f=FORM_BY_ID[id];if(f)nearOut(tagStat(formTag(f)))}
+  for(const id of state.unlockedObjectiveIds){const o=GENERAL_BY_ID[id];if(o)nearOut(tagStat(objectiveTag(o)))}
+  for(const id of state.prayerIntroducedIds){const p=PRAYER_BY_ID[id];if(p)nearOut(tagStat(prayerTag(p)))}
+  save();
+  devToast("Set all unlocked tags to near-mastery");
+}
 function devResetProficiency(){
   state.tagStats={};
   state.sentenceStats={};
   save();
   devToast("Proficiency reset (unlocks kept)");
 }
-function devSkipIntro(){
-  const btn=document.querySelector("#introAction button");
-  if(btn)btn.click();else devToast("No intro on screen");
-}
 function devButtonsInOrder(){return[...document.querySelectorAll("#choices button.choice")]}
 function devAutoAnswer(wantCorrect){
-  if(!current||!current.opts||!current.opts.length||answered){devToast("No answerable question on screen");return}
+  if(!current||!current.opts||!current.opts.length||answered)return false;
   const opt=current.opts.find(o=>!!o.correct===wantCorrect);
-  if(!opt){devToast("No matching option on this question");return}
+  if(!opt)return false;
   const btn=devButtonsInOrder()[current.opts.indexOf(opt)];
   if(btn)answer(opt,btn);
+  return true;
+}
+// v36.4: auto-answer/skip-intro are toggles, not one-shot buttons — each ticks every
+// 500ms until turned off, so a tester can just watch the app grind through material
+// hands-free. Auto-correct and auto-wrong are mutually exclusive (checking one clears
+// the other, both in state and in the panel's own checkboxes).
+function devSetAutoAnswerMode(mode){
+  devToolsState.autoAnswerMode=mode;
+  if(devAutoAnswerTimer){clearInterval(devAutoAnswerTimer);devAutoAnswerTimer=null}
+  if(!mode)return;
+  devAutoAnswerTimer=setInterval(()=>{
+    if(!current)return;
+    if(answered){nextQuestion();return}
+    if(current.opts&&current.opts.length){devAutoAnswer(mode==="correct");return}
+    const introBtn=document.querySelector("#introAction button");
+    if(introBtn)introBtn.click();
+  },500);
+}
+function devSetSkipIntroLoop(on){
+  devToolsState.autoSkipIntro=on;
+  if(devSkipIntroTimer){clearInterval(devSkipIntroTimer);devSkipIntroTimer=null}
+  if(!on)return;
+  devSkipIntroTimer=setInterval(()=>{
+    const btn=document.querySelector("#introAction button");
+    if(btn)btn.click();
+  },500);
+}
+function devToggleAudio(){
+  devToolsState.audioDisabled=!devToolsState.audioDisabled;
+  if(devToolsState.audioDisabled){try{speechSynthesis.cancel()}catch(e){}}
 }
 function devRerollUntilMode(targetMode){
   if(!targetMode)return;
@@ -3648,7 +3723,7 @@ function previewOptionImpact(opt){
     }else if(!current.kind){
       const tags=tagsFor(current.v,current.f);
       const finishers=tags.map(track);
-      scoreQuestion(current,ok);
+      scoreQuestion(current,ok,opt);
       finishers.forEach(f=>f());
     }
   }finally{
@@ -3722,48 +3797,50 @@ function devRenderPanelBody(){
   const body=document.getElementById("devToolsBody");
   if(!body)return;
   const modeOptions=devToolsModes().map(m=>`<option value="${esc(m)}">${esc(modeTitle(m)||m)}</option>`).join("");
+  const toggle=(id,checked,text)=>`<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="${id}" ${checked?"checked":""}> ${text}</label>`;
   body.innerHTML=
     devSectionHTML("Unlock & Curriculum",
+      // Jump-to-curriculum and wipe-all-progress are already reachable from the app's own
+      // Lesson tabs and Settings > Danger Zone — left out here to avoid duplicating them.
       devBtn("unlock-all","🔓 Unlock everything")+
-      devBtn("lock-all","🔒 Lock everything (fresh start)")+
-      devBtn("go-words","📘 Jump to Word Practice")+
-      devBtn("go-sentences","📗 Jump to Sentence Practice")
+      devBtn("lock-all","🔒 Lock everything (fresh start)")
     )+
     devSectionHTML("Proficiency",
       devBtn("master-all","⭐ Master all unlocked tags")+
+      devBtn("near-mastery-all","🌟 Set all unlocked to near-mastery")+
       devBtn("reset-proficiency","♻️ Reset proficiency (keep unlocks)")
     )+
     devSectionHTML("Current Question",
-      `<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px"><input type="checkbox" id="devRevealToggle" ${devToolsState.revealAnswer?"checked":""}> Reveal correct answer</label>`+
-      `<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px"><input type="checkbox" id="devImpactToggle" ${devToolsState.showImpact?"checked":""}> Show tag impact per option</label>`+
-      devBtn("auto-correct","✅ Auto-answer correct")+
-      devBtn("auto-wrong","❌ Auto-answer wrong")+
-      devBtn("skip-intro",'⏭ Skip intro / "Got it"')
+      toggle("devRevealToggle",devToolsState.revealAnswer,"Reveal correct answer")+
+      toggle("devImpactToggle",devToolsState.showImpact,"Show tag impact per option")+
+      toggle("devAutoCorrectToggle",devToolsState.autoAnswerMode==="correct","Auto-answer correct (every 0.5s)")+
+      toggle("devAutoWrongToggle",devToolsState.autoAnswerMode==="wrong","Auto-answer wrong (every 0.5s)")+
+      toggle("devAutoSkipToggle",devToolsState.autoSkipIntro,'Auto skip intro / "Got it" (every 0.5s)')+
+      toggle("devAudioToggle",devToolsState.audioDisabled,"Disable audio entirely")
     )+
     devSectionHTML("Question Generator",
       `<select id="devModeSelect" style="width:100%;padding:8px;border-radius:10px;background:#242424;color:#fff;border:1px solid #3a3a3a;margin-bottom:6px;font-size:13px">${modeOptions}</select>`+
       devBtn("force-mode","🎯 Reroll until this mode appears")
     )+
     devSectionHTML("State",
-      devBtn("copy-state","📋 Copy state JSON to clipboard")+
-      devBtn("wipe-progress","🗑️ Wipe all progress","background:#3a1f1f;border-color:#5a2a2a")
+      devBtn("copy-state","📋 Copy state JSON to clipboard")
     );
   body.querySelector("#devRevealToggle").onchange=()=>devToggle("revealAnswer");
   body.querySelector("#devImpactToggle").onchange=()=>devToggle("showImpact");
+  const correctBox=body.querySelector("#devAutoCorrectToggle"),wrongBox=body.querySelector("#devAutoWrongToggle");
+  correctBox.onchange=e=>{devSetAutoAnswerMode(e.target.checked?"correct":null);if(e.target.checked)wrongBox.checked=false};
+  wrongBox.onchange=e=>{devSetAutoAnswerMode(e.target.checked?"wrong":null);if(e.target.checked)correctBox.checked=false};
+  body.querySelector("#devAutoSkipToggle").onchange=e=>devSetSkipIntroLoop(e.target.checked);
+  body.querySelector("#devAudioToggle").onchange=()=>devToggleAudio();
 }
 function devRunAction(action){
   if(action==="unlock-all")devUnlockAll();
   else if(action==="lock-all")devWipeProgress();
-  else if(action==="go-words")devGoTo("words");
-  else if(action==="go-sentences")devGoTo("sentences");
   else if(action==="master-all")devMasterAllUnlocked();
+  else if(action==="near-mastery-all")devNearMasteryAllUnlocked();
   else if(action==="reset-proficiency")devResetProficiency();
-  else if(action==="auto-correct")devAutoAnswer(true);
-  else if(action==="auto-wrong")devAutoAnswer(false);
-  else if(action==="skip-intro")devSkipIntro();
   else if(action==="force-mode"){const sel=document.getElementById("devModeSelect");devRerollUntilMode(sel?.value)}
   else if(action==="copy-state")devCopyState();
-  else if(action==="wipe-progress")devWipeProgress();
 }
 function buildDevToolsPanel(){
   if(!IS_DEV_BUILD)return;
@@ -4448,7 +4525,7 @@ function answer(opt,btn){
     const tags=prayerTags(current),w=1/Math.max(1,tags.length);
     for(const t of tags){if(ok)applyCorrect(t,w);else applyWrong(t,w,tags.every(x=>mastered(tagStat(x))))}
   }else{
-    penalties=scoreQuestion(current,ok);
+    penalties=scoreQuestion(current,ok,opt);
   }
 
   if(ok){
@@ -4907,6 +4984,10 @@ document.querySelector(".speed-options").onclick=e=>{
   state.settings.learningSpeed=choice;
   syncSpeedButtons();
   save();
+  // v36.4: the impact-preview overlay computes deltas at render time, so a pace change
+  // alone (no new question) would otherwise leave stale numbers showing until the next
+  // question. Recompute immediately if it's currently on.
+  if(IS_DEV_BUILD&&devToolsState.showImpact)devApplyOverlays();
 };
 
 document.getElementById("exportBtn").onclick=exportBackup;
