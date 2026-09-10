@@ -77,6 +77,17 @@ summary{cursor:pointer;font-weight:800}
 .modal{position:fixed;inset:0;background:rgba(1,6,12,.76);display:none;z-index:30;padding:18px;align-items:flex-end;justify-content:center}
 .modal.show{display:flex} .sheet{width:min(680px,100%);max-height:82vh;overflow:auto;background:#0d1828;border:1px solid #324964;border-radius:22px;padding:16px;box-shadow:var(--shadow)}
 .sheet h3{margin:0 0 10px} .sheet .close{float:right}
+.welcome-sheet h2{margin:8px 0 10px;font-size:22px}
+.welcome-lang-switch{display:block;width:100%;margin-bottom:10px;text-align:center;font-weight:800}
+.welcome-tips{margin:10px 0;padding-left:20px;display:grid;gap:8px;font-size:13px;color:var(--muted)}
+.welcome-tips li{line-height:1.4}
+.header-stats{cursor:pointer}
+.stats-sheet h3{margin:8px 0 12px}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.stat-block{background:#091524;border:1px solid #1b3048;border-radius:14px;padding:10px;text-align:center}
+.stat-block b{display:block;font-size:20px}
+.stat-block span{font-size:11px;color:var(--muted)}
+.stats-backup-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
 hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 
 .mastery-flash{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;z-index:60;background:radial-gradient(circle,rgba(255,215,90,.30),rgba(255,196,45,.10) 35%,rgba(0,0,0,0) 68%);transition:opacity .16s ease}
@@ -1409,10 +1420,10 @@ body{
       <div class="brand-lockup"><span class="brand">Kiku</span><span class="brand-dove" aria-hidden="true">🕊</span></div>
       <span class="brand-sub" id="brandSub">Christian Japanese</span>
     </div>
-    <div class="panel stats three compact-stats header-stats" aria-label="Learning stats">
-      <div class="stat" title="Streak"><span class="stat-icon" aria-hidden="true">🔥</span><b id="streakStat">0</b></div>
-      <div class="stat" title="Mastered"><span class="stat-icon" aria-hidden="true">⭐️</span><b id="masteredStat">0</b></div>
-      <div class="stat" title="Accuracy"><span class="stat-icon" aria-hidden="true">🎯</span><b id="accuracyStat">—</b></div>
+    <div class="panel stats three compact-stats header-stats" id="headerStats" role="button" tabindex="0" data-t-aria="ui.stats2.openStats">
+      <div class="stat" data-t-aria="ui.stats2.headerStreak"><span class="stat-icon" aria-hidden="true">🔥</span><b id="streakStat">0</b></div>
+      <div class="stat" data-t-aria="ui.stats2.headerMastered"><span class="stat-icon" aria-hidden="true">⭐️</span><b id="masteredStat">0</b></div>
+      <div class="stat" data-t-aria="ui.stats2.headerAccuracy"><span class="stat-icon" aria-hidden="true">🎯</span><b id="accuracyStat">—</b></div>
     </div>
   </div>
 
@@ -1505,6 +1516,7 @@ body{
           </div>
         </div>
       </div>
+<div class="setting-row"><div><b data-t="ui.stats2.title">Your Stats</b><div class="small" data-t="ui.stats2.settingsDesc">See your totals, streaks, and mastery progress.</div></div><button class="ghost" id="settingsStatsBtn" data-t="ui.stats2.openStats">View stats</button></div>
 <div class="setting-row no-row-background"><div><b data-t="ui.autoAudioTitle">Auto audio</b><div class="small" data-t="ui.autoAudioDesc">Speak the target language automatically when the prompt shows it.</div></div><label class="switch"><input id="autoAudio" type="checkbox"><span class="slider"></span></label></div>
       <div class="setting-row no-row-background"><div><b data-t="ui.quickModeTitle">Quick answer</b><div class="small" data-t="ui.quickModeDesc">Advance automatically after feedback/audio.</div></div><label class="switch"><input id="quickMode" type="checkbox"><span class="slider"></span></label></div>
       <details class="settings-subsection">
@@ -1523,33 +1535,33 @@ body{
       <details class="settings-subsection">
         <summary data-t="ui.themes.summary">Themes</summary>
         <div class="theme-setting">
-          <div class="theme-setting-head"><div class="small">Pick a palette by sight. The three swatches show background, surface, and accent. Spectrum Shift continuously sweeps the full color spectrum very slowly.</div></div>
+          <div class="theme-setting-head"><div class="small" data-t="ui.themes.intro">Pick a palette by sight. The three swatches show background, surface, and accent. Spectrum Shift continuously sweeps the full color spectrum very slowly.</div></div>
           <div id="themeGallery" class="theme-gallery" role="radiogroup" aria-label="Theme">
-  <button type="button" class="theme-card" data-theme-choice="sunset"><span class="theme-name">Kiku Official</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#150a12"></span><span class="theme-swatch" style="--s:#34172c"></span><span class="theme-swatch" style="--s:#ffb36f"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="forest"><span class="theme-name">Forest</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#07120d"></span><span class="theme-swatch" style="--s:#132a20"></span><span class="theme-swatch" style="--s:#7ee0aa"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="ember"><span class="theme-name">Ember</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#120706"></span><span class="theme-swatch" style="--s:#321713"></span><span class="theme-swatch" style="--s:#ff8c68"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="gunmetal"><span class="theme-name">Gun Metal</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#050608"></span><span class="theme-swatch" style="--s:#151a20"></span><span class="theme-swatch" style="--s:#eef3f7"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="royal"><span class="theme-name">Royal</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#090819"></span><span class="theme-swatch" style="--s:#1d1a3a"></span><span class="theme-swatch" style="--s:#e2c15c"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="imperial"><span class="theme-name">Imperial</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#0d0612"></span><span class="theme-swatch" style="--s:#281136"></span><span class="theme-swatch" style="--s:#ffcf6b"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="jade"><span class="theme-name">Jade</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#03110d"></span><span class="theme-swatch" style="--s:#0d2b21"></span><span class="theme-swatch" style="--s:#d8f66c"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="sapphire"><span class="theme-name">Sapphire</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#040914"></span><span class="theme-swatch" style="--s:#0e2040"></span><span class="theme-swatch" style="--s:#8be7ff"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="obsidian"><span class="theme-name">Obsidian</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#030303"></span><span class="theme-swatch" style="--s:#111111"></span><span class="theme-swatch" style="--s:#ffdf72"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="ocean"><span class="theme-name">Ocean</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#041116"></span><span class="theme-swatch" style="--s:#0d303b"></span><span class="theme-swatch" style="--s:#68d7e8"></span></span></button>
-  <button type="button" class="theme-card" data-theme-choice="cycle"><span class="theme-name">Spectrum Shift</span><span class="theme-spectrum"></span></button>
+  <button type="button" class="theme-card" data-theme-choice="sunset"><span class="theme-name" data-t="ui.themes.names.sunset">Kiku Official</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#150a12"></span><span class="theme-swatch" style="--s:#34172c"></span><span class="theme-swatch" style="--s:#ffb36f"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="forest"><span class="theme-name" data-t="ui.themes.names.forest">Forest</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#07120d"></span><span class="theme-swatch" style="--s:#132a20"></span><span class="theme-swatch" style="--s:#7ee0aa"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="ember"><span class="theme-name" data-t="ui.themes.names.ember">Ember</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#120706"></span><span class="theme-swatch" style="--s:#321713"></span><span class="theme-swatch" style="--s:#ff8c68"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="gunmetal"><span class="theme-name" data-t="ui.themes.names.gunmetal">Gun Metal</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#050608"></span><span class="theme-swatch" style="--s:#151a20"></span><span class="theme-swatch" style="--s:#eef3f7"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="royal"><span class="theme-name" data-t="ui.themes.names.royal">Royal</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#090819"></span><span class="theme-swatch" style="--s:#1d1a3a"></span><span class="theme-swatch" style="--s:#e2c15c"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="imperial"><span class="theme-name" data-t="ui.themes.names.imperial">Imperial</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#0d0612"></span><span class="theme-swatch" style="--s:#281136"></span><span class="theme-swatch" style="--s:#ffcf6b"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="jade"><span class="theme-name" data-t="ui.themes.names.jade">Jade</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#03110d"></span><span class="theme-swatch" style="--s:#0d2b21"></span><span class="theme-swatch" style="--s:#d8f66c"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="sapphire"><span class="theme-name" data-t="ui.themes.names.sapphire">Sapphire</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#040914"></span><span class="theme-swatch" style="--s:#0e2040"></span><span class="theme-swatch" style="--s:#8be7ff"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="obsidian"><span class="theme-name" data-t="ui.themes.names.obsidian">Obsidian</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#030303"></span><span class="theme-swatch" style="--s:#111111"></span><span class="theme-swatch" style="--s:#ffdf72"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="ocean"><span class="theme-name" data-t="ui.themes.names.ocean">Ocean</span><span class="theme-swatches"><span class="theme-swatch" style="--s:#041116"></span><span class="theme-swatch" style="--s:#0d303b"></span><span class="theme-swatch" style="--s:#68d7e8"></span></span></button>
+  <button type="button" class="theme-card" data-theme-choice="cycle"><span class="theme-name" data-t="ui.themes.names.cycle">Spectrum Shift</span><span class="theme-spectrum"></span></button>
   <div class="setting-row theme-cycle-row">
-    <div><b>Theme Cycle</b><div class="small">Automatically rotate through the fixed themes.</div><div class="small theme-cycle-ios-note">Unavailable on iOS because iOS does not reliably support Kiku’s animated material theme changes.</div></div>
+    <div><b data-t="ui.themes.cycleTitle">Theme Cycle</b><div class="small" data-t="ui.themes.cycleDesc">Automatically rotate through the fixed themes.</div><div class="small theme-cycle-ios-note" data-t="ui.themes.cycleIosNote">Unavailable on iOS because iOS does not reliably support Kiku’s animated material theme changes.</div></div>
     <label class="switch" aria-label="Theme Cycle">
       <input type="checkbox" id="themeCycleToggle">
       <span class="slider"></span>
     </label>
   </div>
   <div class="theme-cycle-rate-panel" id="themeCycleRatePanel" hidden>
-    <div class="small theme-cycle-rate-label">Cycle rate</div>
+    <div class="small theme-cycle-rate-label" data-t="ui.themes.cycleRateLabel">Cycle rate</div>
     <div class="theme-cycle-rate-options" role="group" aria-label="Theme Cycle rate">
-      <button type="button" data-cycle-rate="30000">30 sec</button>
-      <button type="button" data-cycle-rate="60000">1 min</button>
-      <button type="button" data-cycle-rate="120000">2 min</button>
-      <button type="button" data-cycle-rate="300000">5 min</button>
+      <button type="button" data-cycle-rate="30000" data-t="ui.themes.rate30">30 sec</button>
+      <button type="button" data-cycle-rate="60000" data-t="ui.themes.rate60">1 min</button>
+      <button type="button" data-cycle-rate="120000" data-t="ui.themes.rate120">2 min</button>
+      <button type="button" data-cycle-rate="300000" data-t="ui.themes.rate300">5 min</button>
     </div>
   </div>
 </div>
@@ -1646,6 +1658,42 @@ body{
 <div id="flash" class="flash"></div>
 <div id="modal" class="modal"><div class="sheet"><button class="ghost close" id="closeModal" data-t="ui.modalClose">Close</button><h3 data-t="ui.modalTitleForm">Why this form?</h3><div id="modalBody"></div></div>
 </div>
+<div id="welcomeModal" class="modal">
+  <div class="sheet welcome-sheet">
+    <button type="button" id="welcomeLangSwitch" class="ghost welcome-lang-switch" data-t="ui.welcome.switchButton">日本語に切り替える</button>
+    <h2 data-t="ui.welcome.title">Welcome to Kiku! 🕊</h2>
+    <p class="small" data-t="ui.welcome.intro">Kiku was built to help bridge the language gap in church life — Japanese and English speakers learning to talk about faith together, one word and one sentence at a time.</p>
+    <p class="small" data-t="ui.welcome.purpose">You'll get short multiple-choice questions in Word Practice (vocabulary, verbs, and short phrases) and Sentence Practice (full sentences and prayers). Answer correctly enough times and a word or sentence becomes mastered — watch for the ⭐ and the little celebration.</p>
+    <ul class="welcome-tips">
+      <li data-t="ui.welcome.tip1">Everything saves automatically on this device — back it up anytime from Settings → Backup & restore.</li>
+      <li data-t="ui.welcome.tip2">Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.</li>
+      <li data-t="ui.welcome.tip3">Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.</li>
+      <li data-t="ui.welcome.tip4">Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.</li>
+    </ul>
+    <button type="button" id="welcomeDismiss" class="next" data-t="ui.welcome.getStarted">Get started</button>
+  </div>
+</div>
+<div id="statsModal" class="modal">
+  <div class="sheet stats-sheet">
+    <button class="ghost close" id="statsClose" data-t="ui.modalClose">Close</button>
+    <h3 data-t="ui.stats2.title">Your Stats</h3>
+    <div class="stats-grid">
+      <div class="stat-block"><b id="stat2Answered">0</b><span data-t="ui.stats2.totalAnswered">Total answered</span></div>
+      <div class="stat-block"><b id="stat2Correct">0</b><span data-t="ui.stats.correct">Correct</span></div>
+      <div class="stat-block"><b id="stat2Wrong">0</b><span data-t="ui.stats.wrong">Wrong</span></div>
+      <div class="stat-block"><b id="stat2Accuracy">—</b><span data-t="ui.stats2.accuracyRecent">Accuracy (last 25)</span></div>
+      <div class="stat-block"><b id="stat2Streak">0</b><span data-t="ui.stats2.currentStreak">Current streak</span></div>
+      <div class="stat-block"><b id="stat2BestStreak">0</b><span data-t="ui.stats2.bestStreak">Best streak</span></div>
+      <div class="stat-block"><b id="stat2Mastered">0</b><span data-t="ui.stats2.masteredItems">Mastered items</span></div>
+      <div class="stat-block"><b id="stat2MasteredSentences">0</b><span data-t="ui.stats2.masteredSentences">Mastered sentences</span></div>
+    </div>
+    <p class="small" id="stat2Since"></p>
+    <div class="stats-backup-row">
+      <div class="small"><span data-t="ui.stats2.lastBackup">Last backup</span>: <span id="stat2LastBackup"></span></div>
+      <button class="ghost" id="statsExportBtn" data-t="ui.backup.exportBtn">Export</button>
+    </div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -1732,7 +1780,15 @@ const STRINGS={
         identifyFormTitle:"Identify Form",identifyFormDesc:"Recognize which conjugation you heard or saw.",
         buildFormTitle:"Build Form",buildFormDesc:"Choose the correct conjugation for a requested form.",
         fillBlankTitle:"Fill in the Blank",fillBlankDesc:"Complete a learned sentence from context."},
-      themes:{summary:"Themes"},backup:{summary:"Backup & restore",backupTitle:"Backup progress",backupDesc:"Save a portable backup file to your phone. This survives browser storage being cleared.",exportBtn:"Export",restoreTitle:"Restore progress",restoreDesc:"Load a previously exported backup file.",importBtn:"Import"},
+      themes:{
+        summary:"Themes",
+        intro:"Pick a palette by sight. The three swatches show background, surface, and accent. Spectrum Shift continuously sweeps the full color spectrum very slowly.",
+        names:{sunset:"Kiku Official",forest:"Forest",ember:"Ember",gunmetal:"Gun Metal",royal:"Royal",imperial:"Imperial",jade:"Jade",sapphire:"Sapphire",obsidian:"Obsidian",ocean:"Ocean",cycle:"Spectrum Shift"},
+        cycleTitle:"Theme Cycle",cycleDesc:"Automatically rotate through the fixed themes.",
+        cycleIosNote:"Unavailable on iOS because iOS does not reliably support Kiku's animated material theme changes.",
+        cycleRateLabel:"Cycle rate",
+        rate30:"30 sec",rate60:"1 min",rate120:"2 min",rate300:"5 min"
+      },backup:{summary:"Backup & restore",backupTitle:"Backup progress",backupDesc:"Save a portable backup file to your phone. This survives browser storage being cleared.",exportBtn:"Export",restoreTitle:"Restore progress",restoreDesc:"Load a previously exported backup file.",importBtn:"Import"},
       about:{summary:"About"},changelog:{summary:"Version changelog"},
       danger:{summary:"Danger zone",resetTitle:"Reset learning data",resetDesc:"Keeps these settings, but starts proficiency and unlocked material over.",resetBtn:"Reset"},
       modalClose:"Close",modalTitleForm:"Why this form?",
@@ -1776,6 +1832,18 @@ const STRINGS={
       },
       dictionaryKind:{noun:"noun",verb:"verb",adjective:"adjective",expression:"expression",pattern:"grammar pattern",particle:"particle",pronoun:"pronoun",item:"item"},
       stats:{seen:"Seen",correct:"Correct",wrong:"Wrong",proficiency:"Proficiency"},
+      stats2:{
+        headerStreak:"Streak",headerMastered:"Mastered",headerAccuracy:"Accuracy",
+        openStats:"View stats",
+        title:"Your Stats",
+        settingsDesc:"See your totals, streaks, and mastery progress.",
+        totalAnswered:"Total answered",
+        currentStreak:"Current streak",bestStreak:"Best streak",
+        masteredItems:"Mastered items",masteredSentences:"Mastered sentences",
+        accuracyRecent:"Accuracy (last 25)",
+        practicingSince:"Practicing since",dayOne:"day",daysSince:"days",
+        lastBackup:"Last backup",neverBackedUp:"Never"
+      },
       domains:{
         gospel:{title:"God & the Gospel",subtitle:"God, Jesus, salvation, grace and the good news"},
         scripture:{title:"Bible & Scripture",subtitle:"Bible vocabulary, books, people and God's Word"},
@@ -1790,6 +1858,22 @@ const STRINGS={
         particles:{title:"Particles",subtitle:"Relationship markers that reveal what each phrase is doing"},
         functionWords:{title:"Function Words",subtitle:"Prepositions, negation and other small connecting words — imperfect matches for Japanese particles, but the closest equivalent"},
         pronouns:{title:"Pronouns",subtitle:"Useful person words — plus when each language naturally leaves them out"}
+      },
+      welcome:{
+        // switchButton is deliberately authored in the OTHER language on purpose — its
+        // whole job is to be readable by someone who can't read whatever's currently
+        // showing, so it always names the language you'd be switching TO regardless of
+        // which language bucket is active. Same t() lookup as everything else; only the
+        // content is unusual.
+        switchButton:"日本語に切り替える",
+        title:"Welcome to Kiku! 🕊",
+        intro:"Kiku was built to help bridge the language gap in church life — Japanese and English speakers learning to talk about faith together, one word and one sentence at a time.",
+        purpose:"You'll get short multiple-choice questions in Word Practice (vocabulary, verbs, and short phrases) and Sentence Practice (full sentences and prayers). Answer correctly enough times and a word or sentence becomes mastered — watch for the ⭐ and the little celebration.",
+        tip1:"Everything saves automatically on this device — back it up anytime from Settings → Backup & restore.",
+        tip2:"Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.",
+        tip3:"Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.",
+        tip4:"Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.",
+        getStarted:"Get started"
       }
     },
     encouragement:{correct:["Nice!","Great job!","You've got it!","Correct!","Well done!"],wrong:["Not quite — keep going.","Close! Try the next one.","Keep at it.","Almost — you'll get the next one."]}
@@ -1818,7 +1902,15 @@ const STRINGS={
         identifyFormTitle:"活用形を見分ける",identifyFormDesc:"聞いた・見た活用形を認識します。",
         buildFormTitle:"活用形を作る",buildFormDesc:"指定された活用形を選びます。",
         fillBlankTitle:"穴埋め",fillBlankDesc:"文脈から学習済みの文を完成させます。"},
-      themes:{summary:"テーマ"},backup:{summary:"バックアップと復元",backupTitle:"進捗をバックアップ",backupDesc:"バックアップファイルを端末に保存します。ブラウザのデータが消えても安全です。",exportBtn:"書き出す",restoreTitle:"進捗を復元",restoreDesc:"以前書き出したバックアップファイルを読み込みます。",importBtn:"読み込む"},
+      themes:{
+        summary:"テーマ",
+        intro:"見た目でパレットを選べます。3つのスウォッチは背景・表面・アクセントカラーを表します。Spectrum Shiftは色相を非常にゆっくりと連続的に変化させます。",
+        names:{sunset:"Kiku公式",forest:"フォレスト",ember:"エンバー",gunmetal:"ガンメタル",royal:"ロイヤル",imperial:"インペリアル",jade:"ジェイド",sapphire:"サファイア",obsidian:"オブシディアン",ocean:"オーシャン",cycle:"スペクトルシフト"},
+        cycleTitle:"テーマサイクル",cycleDesc:"固定されたテーマを自動的に順番に切り替えます。",
+        cycleIosNote:"iOSでは、Kikuのアニメーションによるマテリアルテーマの切り替えが安定して動作しないため、利用できません。",
+        cycleRateLabel:"切り替え間隔",
+        rate30:"30秒",rate60:"1分",rate120:"2分",rate300:"5分"
+      },backup:{summary:"バックアップと復元",backupTitle:"進捗をバックアップ",backupDesc:"バックアップファイルを端末に保存します。ブラウザのデータが消えても安全です。",exportBtn:"書き出す",restoreTitle:"進捗を復元",restoreDesc:"以前書き出したバックアップファイルを読み込みます。",importBtn:"読み込む"},
       about:{summary:"このアプリについて"},changelog:{summary:"更新履歴"},
       danger:{summary:"危険な操作",resetTitle:"学習データをリセット",resetDesc:"設定は保持したまま、習熟度と解放済み教材を初期状態に戻します。",resetBtn:"リセット"},
       modalClose:"閉じる",modalTitleForm:"なぜこの形？",
@@ -1862,6 +1954,18 @@ const STRINGS={
       },
       dictionaryKind:{noun:"名詞",verb:"動詞",adjective:"形容詞",expression:"表現",pattern:"文型",particle:"助詞",pronoun:"代名詞",item:"項目"},
       stats:{seen:"回答数",correct:"正解",wrong:"不正解",proficiency:"習熟度"},
+      stats2:{
+        headerStreak:"連続正解",headerMastered:"習得数",headerAccuracy:"正解率",
+        openStats:"統計を見る",
+        title:"あなたの統計",
+        settingsDesc:"総回答数・連続記録・習得状況を確認できます。",
+        totalAnswered:"総回答数",
+        currentStreak:"現在の連続正解",bestStreak:"最高連続正解",
+        masteredItems:"習得した項目",masteredSentences:"習得した文",
+        accuracyRecent:"正解率（直近25問）",
+        practicingSince:"学習開始日",dayOne:"日",daysSince:"日",
+        lastBackup:"最終バックアップ",neverBackedUp:"まだありません"
+      },
       domains:{
         gospel:{title:"神と福音",subtitle:"神、イエス、救い、恵み、そして良い知らせ"},
         scripture:{title:"聖書",subtitle:"聖書の語彙、書物、人物、そして神の言葉"},
@@ -1876,6 +1980,17 @@ const STRINGS={
         particles:{title:"助詞",subtitle:"それぞれの語句がどんな役割かを示す関係マーカー"},
         functionWords:{title:"機能語",subtitle:"前置詞・否定などの小さなつなぎ言葉 — 日本語の助詞と完全には一致しませんが、最も近い対応物です"},
         pronouns:{title:"代名詞",subtitle:"便利な人称語 — そして、それぞれの言語が自然に省略する場面も"}
+      },
+      welcome:{
+        switchButton:"Switch to English",
+        title:"Kikuへようこそ！🕊",
+        intro:"Kikuは、教会での交わりの中にある言語の壁を越える手助けをするために作られました — 日本語話者と英語話者が、信仰について一緒に語り合えるように、一つ一つの単語・一つ一つの文から。",
+        purpose:"「単語練習」（語彙・動詞・短いフレーズ）と「文章練習」（文全体や祈りの言葉）で、短い選択式の問題に答えていきます。十分な回数正解すると、その単語や文は「習得」となり、⭐と小さなお祝い演出が表示されます。",
+        tip1:"進捗はこの端末に自動的に保存されます — 設定 → バックアップと復元からいつでもバックアップできます。",
+        tip2:"🔊をタップすると音声が再生され、ⓘをタップすると詳しい説明が表示されます。",
+        tip3:"ペースに迷ったら？ 設定 → 学習ペースで、Kikuが習得したと判断する速さを変えられます。",
+        tip4:"逆方向を学びたいときは？ 設定 → 学習言語でKikuが教える言語を切り替えられます — アプリ全体が自動的に切り替わります。",
+        getStarted:"始める"
       }
     },
     encouragement:{correct:["いいね！","よくできました！","その調子！","正解！","素晴らしい！"],wrong:["おしい、続けましょう。","惜しい！次はできます。","その調子で。","もう少し、次はきっと。"]}
@@ -2768,12 +2883,22 @@ const defaultState={
   sentenceStats:{},
   sentenceQuestionCount:0,
   curriculum:"words",
+  // Shown once on a genuinely fresh install (see showWelcome() near boot). A returning
+  // user's imported/restored save already has this true, so it never resurfaces.
+  welcomeSeen:false,
   studyFilters:{verbs:true,forms:true,nouns:true,adjectives:true,expressions:true,patterns:true,particles:true,pronouns:true,actions:true,baseFormOnly:false},
   studyDomains:{gospel:true,scripture:true,faith:true,church:true,conversation:true},
   questionCount:0,
   correct:0,
   wrong:0,
   streak:0,
+  bestStreak:0,
+  // Rolling outcomes of the last 25 answered questions (true=correct), used only for
+  // the "recent accuracy" stat — state.correct/state.wrong stay untouched as the real
+  // all-time totals shown alongside it.
+  recentAnswers:[],
+  firstUsedAt:null,
+  lastExportAt:null,
   lastVerbIds:[],
   lastWordKeys:[],
   lastQuestionSigs:[],
@@ -2904,7 +3029,9 @@ async function hydrateState(){
   // Once an older install is loaded, the next save writes it under the official Kiku names.
 }
 function exportBackup(){
-  const payload={app:APP_NAME,version:APP_VERSION,exportedAt:new Date().toISOString(),state};
+  state.lastExportAt=new Date().toISOString();
+  save();
+  const payload={app:APP_NAME,version:APP_VERSION,exportedAt:state.lastExportAt,state};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
@@ -2912,6 +3039,7 @@ function exportBackup(){
   a.download=`kiku-christian-japanese-backup-${new Date().toISOString().slice(0,10)}.json`;
   document.body.appendChild(a);a.click();a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
+  renderStatsModal();
 }
 async function importBackupFile(file){
   const parsed=JSON.parse(await file.text());
@@ -5064,11 +5192,15 @@ function answer(opt,btn){
 
   if(ok){
     state.correct++;state.streak++;
+    state.bestStreak=Math.max(state.bestStreak||0,state.streak);
     if(!current.kind && current.isRedemption)redeem(current);
   }else{
     state.wrong++;state.streak=0;
     if(!current.kind)enqueueFailure(current,penalties);
   }
+  // Recent-accuracy window (see recentAccuracyPct) — all-time correct/wrong above stay
+  // untouched as the real totals.
+  state.recentAnswers=[...(state.recentAnswers||[]),ok].slice(-25);
 
   if(!current.kind){
     document.getElementById("composition").innerHTML="";
@@ -5170,14 +5302,30 @@ function renderActiveLearning(){
     <div class="active-item-side"><div class="active-item-pct">${x.pct}%</div><div class="active-status">${esc(x.status)}</div></div>
   </div>`).join("");
 }
+// Accuracy shown in the header/stats screen: last 25 answered questions, not all-time —
+// a long play history makes an all-time ratio barely move, so it stops reflecting how
+// you're actually doing right now. state.correct/state.wrong stay the real totals.
+function recentAccuracyPct(){
+  const r=state.recentAnswers||[];
+  if(!r.length)return null;
+  return Math.round(r.filter(Boolean).length/r.length*100);
+}
+function masteredSentenceCount(){
+  return SENTENCES.filter(trackAvailable).filter(s=>mastered(tagStat(sentenceTag(s)))).length;
+}
+function formatDateTime(iso){
+  if(!iso)return null;
+  try{return new Date(iso).toLocaleString(currentLang()==="ja"?"ja-JP":"en-US",{dateStyle:"medium",timeStyle:"short"})}
+  catch(e){return iso}
+}
 function renderUI(){
   applyTheme(state.settings.theme||"sunset",false);
   const masteredWords=allIntroducedWordKeys().filter(wordMasteredByKey).length;
   const masteredForms=state.activeFormIds.map(id=>FORM_BY_ID[id]).filter(Boolean).filter(f=>mastered(tagStat(formTag(f)))).length;
   document.getElementById("streakStat").textContent=state.streak;
   document.getElementById("masteredStat").textContent=masteredWords+masteredForms;
-  const total=state.correct+state.wrong;
-  document.getElementById("accuracyStat").textContent=total?Math.round(state.correct/total*100)+"%":"—";
+  const recentAcc=recentAccuracyPct();
+  document.getElementById("accuracyStat").textContent=recentAcc===null?"—":recentAcc+"%";
   document.getElementById("coreTab").classList.toggle("active",state.curriculum==="words");
   document.getElementById("prayerTab").classList.toggle("active",state.curriculum==="sentences");
   renderAllItems();
@@ -5520,6 +5668,54 @@ document.getElementById("closeModal").onclick=()=>document.getElementById("modal
 document.getElementById("modal").onclick=e=>{if(e.target.id==="modal")document.getElementById("modal").classList.remove("show")};
 document.getElementById("nextBtn").onclick=nextQuestion;
 
+// Fresh-install welcome screen. The language-switch button up top is the one
+// deliberately special case in the whole language system: it's the only control that
+// must be readable BEFORE a visitor can read the current interface language at all, so
+// its own label is authored in the opposite language on purpose (see
+// STRINGS.ui.welcome.switchButton) rather than needing a bespoke lookup — switching goes
+// through the exact same switchTrack()/applyStrings() path as the Settings toggle and
+// the Dev Tools shortcut, so the welcome text re-renders in place along with everything
+// else, without closing.
+function showWelcome(){document.getElementById("welcomeModal")?.classList.add("show")}
+function hideWelcome(){document.getElementById("welcomeModal")?.classList.remove("show")}
+document.getElementById("welcomeLangSwitch").onclick=()=>switchTrack(otherTrack(currentTrack()));
+document.getElementById("welcomeDismiss").onclick=()=>{state.welcomeSeen=true;save();hideWelcome()};
+
+// Stats screen — reachable from the header widget (streak/mastered/accuracy) and from
+// Settings. Numbers are computed fresh each time it opens rather than kept live, since
+// nothing needs it to update while hidden.
+function renderStatsModal(){
+  const masteredWords=allIntroducedWordKeys().filter(wordMasteredByKey).length;
+  const masteredForms=state.activeFormIds.map(id=>FORM_BY_ID[id]).filter(Boolean).filter(f=>mastered(tagStat(formTag(f)))).length;
+  // Deliberately correct+wrong, not state.questionCount — questionCount also counts
+  // intro/teaching screens that were never actually answered right or wrong, which
+  // would make "total answered" not add up to "correct + wrong" shown right next to it.
+  document.getElementById("stat2Answered").textContent=(state.correct||0)+(state.wrong||0);
+  document.getElementById("stat2Correct").textContent=state.correct||0;
+  document.getElementById("stat2Wrong").textContent=state.wrong||0;
+  const acc=recentAccuracyPct();
+  document.getElementById("stat2Accuracy").textContent=acc===null?"—":acc+"%";
+  document.getElementById("stat2Streak").textContent=state.streak||0;
+  document.getElementById("stat2BestStreak").textContent=state.bestStreak||0;
+  document.getElementById("stat2Mastered").textContent=masteredWords+masteredForms;
+  document.getElementById("stat2MasteredSentences").textContent=masteredSentenceCount();
+  const since=document.getElementById("stat2Since");
+  if(state.firstUsedAt){
+    const days=Math.max(0,Math.floor((Date.now()-new Date(state.firstUsedAt).getTime())/86400000));
+    const daysLabel=currentLang()==="ja"?`${days}${t("ui.stats2.daysSince")}`:`${days} ${days===1?t("ui.stats2.dayOne"):t("ui.stats2.daysSince")}`;
+    since.textContent=`${t("ui.stats2.practicingSince")}: ${formatDateTime(state.firstUsedAt)} (${daysLabel})`;
+  }else since.textContent="";
+  document.getElementById("stat2LastBackup").textContent=state.lastExportAt?formatDateTime(state.lastExportAt):t("ui.stats2.neverBackedUp");
+}
+function openStatsModal(){renderStatsModal();document.getElementById("statsModal")?.classList.add("show")}
+function closeStatsModal(){document.getElementById("statsModal")?.classList.remove("show")}
+document.getElementById("headerStats").onclick=openStatsModal;
+document.getElementById("headerStats").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openStatsModal()}};
+document.getElementById("settingsStatsBtn").onclick=openStatsModal;
+document.getElementById("statsClose").onclick=closeStatsModal;
+document.getElementById("statsModal").onclick=e=>{if(e.target.id==="statsModal")closeStatsModal()};
+document.getElementById("statsExportBtn").onclick=exportBackup;
+
 for(const [id,key] of [["autoAudio","autoAudio"],["quickMode","quickMode"]]){
   const el=document.getElementById(id);
   el.onchange=()=>{state.settings[key]=el.checked;save()};
@@ -5612,6 +5808,9 @@ selfTest();
   showDevBadge();
   buildDevToolsPanel();
   await hydrateState();
+  // Pre-existing saves (imported backups, or installs from before this stat existed)
+  // won't have this — start counting from today rather than claiming false history.
+  if(!state.firstUsedAt)state.firstUsedAt=new Date().toISOString();
   applyTheme(state.settings.theme||"sunset",false);
   seedTrackIfNeeded();
   if(currentTrack()==="ja"&&!state.introducedVerbIds.length && !state.pendingIntroVerbIds.length){
@@ -5623,6 +5822,7 @@ selfTest();
   const built=ensureValidQuestion(raw);current=built.q;current.opts=built.opts;renderQuestion();
   autoAudioModeVisited[state.curriculum]=true;
   save();
+  if(!state.welcomeSeen)showWelcome();
   maybeShowInstallBanner();
   maybeShowUpdateToast();
   // v36.1: silently pick up a newer deployed version — on load, and whenever the app
