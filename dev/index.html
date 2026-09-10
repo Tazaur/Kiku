@@ -75,19 +75,20 @@ summary{cursor:pointer;font-weight:800}
 .flash{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;z-index:20;font-size:42px;font-weight:950;transition:opacity .12s}
 .flash.show{opacity:1} .flash.good{background:rgba(23,119,78,.35)} .flash.bad{background:rgba(145,35,52,.38)}
 .modal{position:fixed;inset:0;background:rgba(1,6,12,.76);display:none;z-index:30;padding:18px;align-items:flex-end;justify-content:center}
+#welcomeModal{align-items:center}
 .modal.show{display:flex} .sheet{width:min(680px,100%);max-height:82vh;overflow:auto;background:#0d1828;border:1px solid #324964;border-radius:22px;padding:16px;box-shadow:var(--shadow)}
 .sheet h3{margin:0 0 10px} .sheet .close{float:right}
 .welcome-sheet h2{margin:8px 0 10px;font-size:22px}
-.welcome-lang-switch{display:block;width:100%;margin-bottom:10px;text-align:center;font-weight:800}
+.welcome-lang-switch{display:block;width:100%;margin:0 0 14px;padding:0;background:none;border:0;text-align:center;color:var(--muted);text-decoration:underline;font-weight:600;font-size:13px;cursor:pointer}
 .welcome-tips{margin:10px 0;padding-left:20px;display:grid;gap:8px;font-size:13px;color:var(--muted)}
 .welcome-tips li{line-height:1.4}
 .header-stats{cursor:pointer}
 .stats-sheet h3{margin:8px 0 12px}
 .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
-.stat-block{background:#091524;border:1px solid #1b3048;border-radius:14px;padding:10px;text-align:center}
+.stat-block{background:var(--surface-3);border:1px solid var(--border);border-radius:14px;padding:10px;text-align:center}
 .stat-block b{display:block;font-size:20px}
 .stat-block span{font-size:11px;color:var(--muted)}
-.stats-backup-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.stats-backup-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--border);padding-top:12px;margin-top:4px}
 hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 
 .mastery-flash{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;z-index:60;background:radial-gradient(circle,rgba(255,215,90,.30),rgba(255,196,45,.10) 35%,rgba(0,0,0,0) 68%);transition:opacity .16s ease}
@@ -1577,8 +1578,9 @@ body{
         <summary data-t="ui.about.summary">About</summary>
         <div class="about-block">
           <b>Kiku: Christian Japanese</b>
-          <div class="small">v36.4</div>
+          <div class="small">v<span id="aboutVersion">37</span></div>
           <div class="small">Developed by Tazaur Sagenclaw</div>
+          <button type="button" class="ghost" id="aboutShowWelcome" data-t="ui.about.showWelcome">Show welcome guide</button>
         </div>
       </details>
 
@@ -1660,15 +1662,14 @@ body{
 </div>
 <div id="welcomeModal" class="modal">
   <div class="sheet welcome-sheet">
-    <button type="button" id="welcomeLangSwitch" class="ghost welcome-lang-switch" data-t="ui.welcome.switchButton">日本語に切り替える</button>
+    <button type="button" id="welcomeLangSwitch" class="welcome-lang-switch" data-t="ui.welcome.switchButton">日本語に切り替える</button>
     <h2 data-t="ui.welcome.title">Welcome to Kiku! 🕊</h2>
     <p class="small" data-t="ui.welcome.intro">Kiku was built to help bridge the language gap in church life — Japanese and English speakers learning to talk about faith together, one word and one sentence at a time.</p>
     <p class="small" data-t="ui.welcome.purpose">You'll get short multiple-choice questions in Word Practice (vocabulary, verbs, and short phrases) and Sentence Practice (full sentences and prayers). Answer correctly enough times and a word or sentence becomes mastered — watch for the ⭐ and the little celebration.</p>
     <ul class="welcome-tips">
-      <li data-t="ui.welcome.tip1">Everything saves automatically on this device — back it up anytime from Settings → Backup & restore.</li>
-      <li data-t="ui.welcome.tip2">Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.</li>
-      <li data-t="ui.welcome.tip3">Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.</li>
-      <li data-t="ui.welcome.tip4">Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.</li>
+      <li data-t="ui.welcome.tip1">Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.</li>
+      <li data-t="ui.welcome.tip2">Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.</li>
+      <li data-t="ui.welcome.tip3">Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.</li>
     </ul>
     <button type="button" id="welcomeDismiss" class="next" data-t="ui.welcome.getStarted">Get started</button>
   </div>
@@ -1789,7 +1790,7 @@ const STRINGS={
         cycleRateLabel:"Cycle rate",
         rate30:"30 sec",rate60:"1 min",rate120:"2 min",rate300:"5 min"
       },backup:{summary:"Backup & restore",backupTitle:"Backup progress",backupDesc:"Save a portable backup file to your phone. This survives browser storage being cleared.",exportBtn:"Export",restoreTitle:"Restore progress",restoreDesc:"Load a previously exported backup file.",importBtn:"Import"},
-      about:{summary:"About"},changelog:{summary:"Version changelog"},
+      about:{summary:"About",showWelcome:"Show welcome guide"},changelog:{summary:"Version changelog"},
       danger:{summary:"Danger zone",resetTitle:"Reset learning data",resetDesc:"Keeps these settings, but starts proficiency and unlocked material over.",resetBtn:"Reset"},
       modalClose:"Close",modalTitleForm:"Why this form?",
       masteredSuffix:"Mastered!",
@@ -1869,10 +1870,9 @@ const STRINGS={
         title:"Welcome to Kiku! 🕊",
         intro:"Kiku was built to help bridge the language gap in church life — Japanese and English speakers learning to talk about faith together, one word and one sentence at a time.",
         purpose:"You'll get short multiple-choice questions in Word Practice (vocabulary, verbs, and short phrases) and Sentence Practice (full sentences and prayers). Answer correctly enough times and a word or sentence becomes mastered — watch for the ⭐ and the little celebration.",
-        tip1:"Everything saves automatically on this device — back it up anytime from Settings → Backup & restore.",
-        tip2:"Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.",
-        tip3:"Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.",
-        tip4:"Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.",
+        tip1:"Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.",
+        tip2:"Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.",
+        tip3:"Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.",
         getStarted:"Get started"
       }
     },
@@ -1911,7 +1911,7 @@ const STRINGS={
         cycleRateLabel:"切り替え間隔",
         rate30:"30秒",rate60:"1分",rate120:"2分",rate300:"5分"
       },backup:{summary:"バックアップと復元",backupTitle:"進捗をバックアップ",backupDesc:"バックアップファイルを端末に保存します。ブラウザのデータが消えても安全です。",exportBtn:"書き出す",restoreTitle:"進捗を復元",restoreDesc:"以前書き出したバックアップファイルを読み込みます。",importBtn:"読み込む"},
-      about:{summary:"このアプリについて"},changelog:{summary:"更新履歴"},
+      about:{summary:"このアプリについて",showWelcome:"ようこそ画面を表示"},changelog:{summary:"更新履歴"},
       danger:{summary:"危険な操作",resetTitle:"学習データをリセット",resetDesc:"設定は保持したまま、習熟度と解放済み教材を初期状態に戻します。",resetBtn:"リセット"},
       modalClose:"閉じる",modalTitleForm:"なぜこの形？",
       masteredSuffix:"習得しました！",
@@ -1986,10 +1986,9 @@ const STRINGS={
         title:"Kikuへようこそ！🕊",
         intro:"Kikuは、教会での交わりの中にある言語の壁を越える手助けをするために作られました — 日本語話者と英語話者が、信仰について一緒に語り合えるように、一つ一つの単語・一つ一つの文から。",
         purpose:"「単語練習」（語彙・動詞・短いフレーズ）と「文章練習」（文全体や祈りの言葉）で、短い選択式の問題に答えていきます。十分な回数正解すると、その単語や文は「習得」となり、⭐と小さなお祝い演出が表示されます。",
-        tip1:"進捗はこの端末に自動的に保存されます — 設定 → バックアップと復元からいつでもバックアップできます。",
-        tip2:"🔊をタップすると音声が再生され、ⓘをタップすると詳しい説明が表示されます。",
-        tip3:"ペースに迷ったら？ 設定 → 学習ペースで、Kikuが習得したと判断する速さを変えられます。",
-        tip4:"逆方向を学びたいときは？ 設定 → 学習言語でKikuが教える言語を切り替えられます — アプリ全体が自動的に切り替わります。",
+        tip1:"🔊をタップすると音声が再生され、ⓘをタップすると詳しい説明が表示されます。",
+        tip2:"ペースに迷ったら？ 設定 → 学習ペースで、Kikuが習得したと判断する速さを変えられます。",
+        tip3:"逆方向を学びたいときは？ 設定 → 学習言語でKikuが教える言語を切り替えられます — アプリ全体が自動的に切り替わります。",
         getStarted:"始める"
       }
     },
@@ -5679,6 +5678,8 @@ function showWelcome(){document.getElementById("welcomeModal")?.classList.add("s
 function hideWelcome(){document.getElementById("welcomeModal")?.classList.remove("show")}
 document.getElementById("welcomeLangSwitch").onclick=()=>switchTrack(otherTrack(currentTrack()));
 document.getElementById("welcomeDismiss").onclick=()=>{state.welcomeSeen=true;save();hideWelcome()};
+document.getElementById("aboutShowWelcome").onclick=showWelcome;
+document.getElementById("aboutVersion").textContent=APP_VERSION;
 
 // Stats screen — reachable from the header widget (streak/mastered/accuracy) and from
 // Settings. Numbers are computed fresh each time it opens rather than kept live, since
