@@ -136,7 +136,10 @@ hr{border:0;border-top:1px solid var(--line);margin:14px 0}
 body{
   --border:#24364d;--border-strong:#2a415c;--text:#eef5ff;--accent:#71c4ff;
   --good:#63dda0;--good-bg:#10291f;--good-border:#3c9f73;--bad:#ff7f8f;--bad-bg:#2a1217;--bad-border:#a94d5b;
-  --overlay:rgba(1,6,12,.76);
+  /* neutral black on purpose — a modal backdrop's job is to dim/recede, not express
+     the theme, and rgba(1,6,12,...) had a faint blue cast that showed through as
+     visibly off-theme against warmer palettes. */
+  --overlay:rgba(0,0,0,.72);
 }
 
 
@@ -1587,7 +1590,7 @@ body{
 <details class="settings-subsection">
         <summary data-t="ui.changelog.summary">Version changelog</summary>
 <div class="changelog-list">
-        <div class="change-entry"><b>v37</b><span class="small">Kiku now teaches bidirectionally: added a full English track (Christian English vocabulary, sentences, and prayer practice for Japanese speakers) alongside the existing Japanese track, switchable anytime from a new Learning language setting — the entire interface, explanations, and mode labels switch language automatically with it, and shared vocabulary keeps one unified mastery score no matter which track you studied it from. Language Skills now covers both directions too, with English function words alongside Japanese particles. Sentence practice now properly reaches mastery (star, celebration, and graduating out of active practice), matching every other question type. Word/verb-form practice gives the same partial credit as sentences: picking a wrong option that shares a tag with the correct answer credits that shared tag instead of penalizing it — only the tag actually gotten wrong takes the hit. The update checker now applies silently in the background instead of showing a banner. Added a Dev Tools panel for testing (unlock/lock all material, master or reset proficiency, reveal the correct answer, preview tag impact, auto-answer, force a question type or track, copy state, wipe progress).</span></div>
+        <div class="change-entry"><b>v37</b><span class="small">Kiku now teaches bidirectionally: added a full English track with its own vocabulary, sentences, and prayers, switchable anytime from Settings — the whole interface follows automatically. Also fixed sentence mastery, added per-tag partial credit to word practice, and made background updates silent.</span></div>
         <div class="change-entry"><b>v36</b><span class="small">Added a cross-platform "Add to Home Screen" prompt, fixed the installed-app status/navigation bar to use a consistent neutral color, added a Learning Pace setting, fixed theme colors on the explanation modal and several buttons, and added a background update checker that keeps the app current automatically.</span></div>
         <div class="change-entry"><b>v35</b><span class="small">Improved teaching and practice flow, added prayer language, finalized theme transitions and Spectrum Shift, updated the app icon, and fixed several small internal bugs.</span></div>
         <div class="change-entry"><b>v34</b><span class="small">Finalized the theme system with material-based palettes, smooth color/material transitions, theme-cycle refinements, and improved iOS installed-app behavior.</span></div>
@@ -1670,6 +1673,7 @@ body{
       <li data-t="ui.welcome.tip1">Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.</li>
       <li data-t="ui.welcome.tip2">Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.</li>
       <li data-t="ui.welcome.tip3">Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.</li>
+      <li data-t="ui.welcome.tip4">Progress saves automatically on this device, but that only lasts as long as the browser keeps it. Settings → Backup & restore (or your Stats screen) lets you export a much more reliable backup file.</li>
     </ul>
     <button type="button" id="welcomeDismiss" class="next" data-t="ui.welcome.getStarted">Get started</button>
   </div>
@@ -1873,6 +1877,7 @@ const STRINGS={
         tip1:"Tap 🔊 to hear something spoken aloud, and ⓘ for a deeper explanation of what you're looking at.",
         tip2:"Not sure how fast to go? Settings → Learning pace changes how quickly Kiku decides you've got something down.",
         tip3:"Learning the other direction? Settings → Learning language switches what Kiku teaches — the whole app follows automatically.",
+        tip4:"Progress saves automatically on this device, but that only lasts as long as the browser keeps it. Settings → Backup & restore (or your Stats screen) lets you export a much more reliable backup file.",
         getStarted:"Get started"
       }
     },
@@ -1989,6 +1994,7 @@ const STRINGS={
         tip1:"🔊をタップすると音声が再生され、ⓘをタップすると詳しい説明が表示されます。",
         tip2:"ペースに迷ったら？ 設定 → 学習ペースで、Kikuが習得したと判断する速さを変えられます。",
         tip3:"逆方向を学びたいときは？ 設定 → 学習言語でKikuが教える言語を切り替えられます — アプリ全体が自動的に切り替わります。",
+        tip4:"進捗はこの端末に自動的に保存されますが、それはブラウザがデータを保持している間だけです。設定 → バックアップと復元（または統計画面）から、より確実なバックアップファイルを書き出せます。",
         getStarted:"始める"
       }
     },
